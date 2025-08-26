@@ -44,10 +44,7 @@ export default function ReviewListPage() {
             "本部スコア",
             "人事室スコア",
             "最終スコア",
-            "授業審査希望日1",
-            "授業審査希望終了日1",
-            "授業審査希望日2",
-            "授業審査希望終了日2"
+            "授業審査URL"
         ];
         
         const rows = submissions.map(submission => {
@@ -63,10 +60,7 @@ export default function ReviewListPage() {
                 submission.hqGrade?.score ?? "－",
                 submission.poGrade?.score ?? "－",
                 submission.finalScore ?? "－",
-                submission.lessonReviewDate1?.toISOString() ?? "－",
-                submission.lessonReviewEndDate1?.toISOString() ?? "－",
-                submission.lessonReviewDate2?.toISOString() ?? "－",
-                submission.lessonReviewEndDate2?.toISOString() ?? "－"
+                submission.lessonReviewUrl ?? "－"
             ].join(',');
         });
 

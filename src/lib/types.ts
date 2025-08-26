@@ -46,15 +46,12 @@ export interface Submission {
   examineeHeadquarters?: string;
   submittedAt: any; // Firestore Timestamp
   answers: Answer[];
-  status: 'In Progress' | 'Submitted' | 'Grading' | 'Completed' | '本部採点中' | '人事確認中' | '合格' | '不合格';
+  status: 'In Progress' | 'Submitted' | 'Grading' | 'Completed' | '本部採点中' | '人事確認中' | '合格' | '不合格' | '授業審査待ち';
   hqGrade?: Grade;
   poGrade?: Grade;
   finalScore?: number;
   finalOutcome?: 'Passed' | 'Failed';
-  lessonReviewDate1?: any; // Firestore Timestamp
-  lessonReviewEndDate1?: any; // Firestore Timestamp
-  lessonReviewDate2?: any; // Firestore Timestamp
-  lessonReviewEndDate2?: any; // Firestore Timestamp
+  lessonReviewUrl?: string;
   resultCommunicated?: boolean;
 }
 

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { User, Submission, Exam } from "@/lib/types";
 import {
   Table,
@@ -144,29 +144,30 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
               不合格: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700/40",
               本部採点中: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700/40",
               人事確認中: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700/40",
+              授業審査待ち: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700/40",
               "不明": "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-700/40",
             },
           },
         }
     )
 
-    const getStatusName = (submission: Submission) => {
+    const getStatusName = (submission: Submission): keyof typeof badgeVariants.propTypes.status => {
         // Final outcome takes precedence
-        if (submission.finalOutcome === 'Passed') return '合格';
-        if (submission.finalOutcome === 'Failed') return '不合格';
+        if (submission.finalOutcome === 'Passed' && !submission.lessonReviewUrl && examsMap[submission.examId]?.type === 'WrittenAndInterview') return '授業審査待ち';
+        if (submission.status === '合格') return '合格';
+        if (submission.status === '不合格') return '不合格';
+        if (submission.status === '授業審査待ち') return '授業審査待ち';
+        if (submission.status === '人事確認中') return '人事確認中';
+        if (submission.status === 'Submitted') return '本部採点中';
 
-        switch(submission.status) {
-            case '人事確認中': return '人事確認中';
-            case 'Submitted': return '本部採点中';
-            // Legacy statuses
-            case '本部採点中': return '人事確認中';
-            case 'Grading': return '人事確認中';
-            case 'Completed': 
-                 if (submission.finalOutcome === 'Passed') return '合格';
-                 if (submission.finalOutcome === 'Failed') return '不合格';
-                 return '人事確認中';
-            default: return '不明';
+        // Legacy statuses
+        if (submission.status === 'Grading') return '人事確認中';
+        if (submission.status === 'Completed') {
+            if (submission.finalOutcome === 'Passed') return '合格';
+            if (submission.finalOutcome === 'Failed') return '不合格';
+            return '人事確認中';
         }
+        return '不明';
     }
 
   return (
@@ -177,7 +178,7 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
             <TableHead className="text-primary-foreground whitespace-nowrap">試験名</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap">受験者名</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap">本部</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">提出日時</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">提出日時</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap text-center">ステータス</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap text-center">結果伝達</TableHead>
             <TableHead className="text-right text-primary-foreground whitespace-nowrap">アクション</TableHead>
@@ -206,9 +207,9 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
                         <TableCell className="font-medium whitespace-nowrap">{exam?.title || '－'}</TableCell>
                         <TableCell className="whitespace-nowrap">{examinee?.name || '－'}</TableCell>
                         <TableCell className="whitespace-nowrap">{submission.examineeHeadquarters?.replace('本部', '') || '－'}</TableCell>
-                        <TableCell className="whitespace-nowrap">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd", { locale: ja })}</TableCell>
+                        <TableCell className="whitespace-nowrap text-center">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd", { locale: ja })}</TableCell>
                         <TableCell className="text-center whitespace-nowrap">
-                            <Badge variant="outline" className={badgeVariants({ status: statusName as any })}>
+                            <Badge variant="outline" className={badgeVariants({ status: statusName })}>
                                 {statusName}
                             </Badge>
                         </TableCell>

@@ -13,10 +13,6 @@ export async function getSubmissions(): Promise<Submission[]> {
             id: doc.id,
             ...data,
             submittedAt: data.submittedAt.toDate(),
-            lessonReviewDate1: data.lessonReviewDate1?.toDate(),
-            lessonReviewEndDate1: data.lessonReviewEndDate1?.toDate(),
-            lessonReviewDate2: data.lessonReviewDate2?.toDate(),
-            lessonReviewEndDate2: data.lessonReviewEndDate2?.toDate(),
         } as Submission;
     });
 }
@@ -30,10 +26,6 @@ export async function getSubmission(id: string): Promise<Submission | null> {
             id: docSnap.id,
             ...data,
             submittedAt: data.submittedAt.toDate(),
-            lessonReviewDate1: data.lessonReviewDate1?.toDate(),
-            lessonReviewEndDate1: data.lessonReviewEndDate1?.toDate(),
-            lessonReviewDate2: data.lessonReviewDate2?.toDate(),
-            lessonReviewEndDate2: data.lessonReviewEndDate2?.toDate(),
         } as Submission;
     }
     return null;
@@ -55,19 +47,7 @@ export async function updateSubmission(submissionId: string, submissionData: Par
     
     // Convert Date objects to Firestore Timestamps before updating
     const dataToUpdate: { [key: string]: any } = { ...submissionData };
-    if (submissionData.lessonReviewDate1) {
-        dataToUpdate.lessonReviewDate1 = Timestamp.fromDate(submissionData.lessonReviewDate1);
-    }
-    if (submissionData.lessonReviewEndDate1) {
-        dataToUpdate.lessonReviewEndDate1 = Timestamp.fromDate(submissionData.lessonReviewEndDate1);
-    }
-    if (submissionData.lessonReviewDate2) {
-        dataToUpdate.lessonReviewDate2 = Timestamp.fromDate(submissionData.lessonReviewDate2);
-    }
-    if (submissionData.lessonReviewEndDate2) {
-        dataToUpdate.lessonReviewEndDate2 = Timestamp.fromDate(submissionData.lessonReviewEndDate2);
-    }
-
+    
     await updateDoc(docRef, dataToUpdate);
 }
 
