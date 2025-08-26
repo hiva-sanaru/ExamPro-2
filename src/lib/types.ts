@@ -63,7 +63,7 @@ export interface Exam {
   totalPoints: number;
   status: 'Draft' | 'Published' | 'Archived';
   questions: Question[];
-  type: 'Standard' | 'Promotion';
+  type: 'WrittenOnly' | 'WrittenAndInterview' | 'Standard' | 'Promotion'; // Standard and Promotion are for backwards compatibility
 }
 
 

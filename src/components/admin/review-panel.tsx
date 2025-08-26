@@ -174,7 +174,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         newStatus = "Completed";
     }
     
-    if (finalOutcome === 'Passed' && exam.type === 'Promotion') {
+    if (finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
         dataToUpdate.lessonReviewDate1 = lessonReviewDate1;
         dataToUpdate.lessonReviewEndDate1 = lessonReviewEndDate1;
         dataToUpdate.lessonReviewDate2 = lessonReviewDate2;
@@ -344,11 +344,11 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
               </div>
             )}
 
-            {finalOutcome === 'Passed' && exam.type === 'Promotion' && (
+            {finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
                  <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
                     <CardHeader>
                          <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>
-                         <CardDescription>この試験は昇進試験です。授業審査の希望日時と時間を選択してください。</CardDescription>
+                         <CardDescription>この試験は筆記と授業審査の両方が対象です。授業審査の希望日時と時間を選択してください。</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {/* --- First Choice --- */}

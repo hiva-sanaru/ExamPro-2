@@ -34,7 +34,17 @@ export function ExamList({ isAdmin }: ExamListProps) {
     setIsLoading(true);
     try {
       const fetchedExams = await getExams();
-      setExams(fetchedExams);
+      // Map legacy types for backward compatibility
+      const mappedExams = fetchedExams.map(exam => {
+        if ((exam.type as any) === 'Standard') {
+          return { ...exam, type: 'WrittenOnly' };
+        }
+        if ((exam.type as any) === 'Promotion') {
+          return { ...exam, type: 'WrittenAndInterview' };
+        }
+        return exam;
+      });
+      setExams(mappedExams);
     } catch (error) {
       console.error("Failed to fetch exams", error);
       toast({ title: "Error", description: "Failed to load exams.", variant: "destructive" });
@@ -110,8 +120,8 @@ export function ExamList({ isAdmin }: ExamListProps) {
                 </Badge>
               </TableCell>
               <TableCell>
-                 <Badge variant={exam.type === 'Promotion' ? "destructive" : "secondary"}>
-                    {exam.type === 'Promotion' ? '昇進' : '標準'}
+                 <Badge variant={exam.type === 'WrittenAndInterview' ? "destructive" : "secondary"}>
+                    {exam.type === 'WrittenAndInterview' ? '筆記＋授業審査' : '筆記のみ'}
                  </Badge>
               </TableCell>
               <TableCell>{exam.questions.length}</TableCell>

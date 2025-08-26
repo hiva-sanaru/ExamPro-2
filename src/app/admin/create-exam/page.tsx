@@ -25,7 +25,7 @@ function CreateExamPageContent() {
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState(60);
   const [status, setStatus] = useState<Exam['status']>('Draft');
-  const [examType, setExamType] = useState<Exam['type']>('Standard');
+  const [examType, setExamType] = useState<Exam['type']>('WrittenOnly');
   const [questions, setQuestions] = useState<Partial<Question>[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +41,7 @@ function CreateExamPageContent() {
             setTitle(examData.title);
             setDuration(examData.duration);
             setStatus(examData.status);
-            setExamType(examData.type || 'Standard');
+            setExamType(examData.type || 'WrittenOnly');
             // Ensure questions have unique IDs for the form key
             const questionsWithIds = examData.questions.map(q => ({...q, id: q.id || uuidv4()}));
             setQuestions(questionsWithIds);
@@ -222,32 +222,34 @@ function CreateExamPageContent() {
                      <div className="space-y-2">
                         <Label htmlFor="exam-type">試験タイプ</Label>
                         <Select value={examType} onValueChange={(value: Exam['type']) => setExamType(value)}>
-                            <SelectTrigger id="exam-type" className="w-[200px] bg-white dark:bg-gray-950">
+                            <SelectTrigger id="exam-type" className="w-full bg-white dark:bg-gray-950">
                                 <SelectValue placeholder="タイプを選択" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Standard">標準</SelectItem>
-                                <SelectItem value="Promotion">昇進</SelectItem>
+                                <SelectItem value="WrittenOnly">筆記のみ</SelectItem>
+                                <SelectItem value="WrittenAndInterview">筆記＋授業審査</SelectItem>
                             </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">「昇進」を選ぶと、合格後に授業審査ステップに進みます。</p>
+                        <p className="text-xs text-muted-foreground">「筆記＋授業審査」を選ぶと、合格後に授業審査ステップに進みます。</p>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="exam-status">試験ステータス</Label>
-                        <Select value={status} onValueChange={(value: Exam['status']) => setStatus(value)}>
-                            <SelectTrigger id="exam-status" className="w-[200px] bg-white dark:bg-gray-950">
-                                <SelectValue placeholder="ステータスを選択" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Draft">下書き</SelectItem>
-                                <SelectItem value="Published">公開済み</SelectItem>
-                                <SelectItem value="Archived">アーカイブ済み</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="exam-duration">試験時間（分）</Label>
-                        <Input id="exam-duration" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="bg-white dark:bg-gray-950" />
+                     <div className="flex items-center gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="exam-status">試験ステータス</Label>
+                            <Select value={status} onValueChange={(value: Exam['status']) => setStatus(value)}>
+                                <SelectTrigger id="exam-status" className="w-[200px] bg-white dark:bg-gray-950">
+                                    <SelectValue placeholder="ステータスを選択" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Draft">下書き</SelectItem>
+                                    <SelectItem value="Published">公開済み</SelectItem>
+                                    <SelectItem value="Archived">アーカイブ済み</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="exam-duration">試験時間（分）</Label>
+                            <Input id="exam-duration" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="bg-white dark:bg-gray-950" />
+                        </div>
                     </div>
                 </div>
             </CardContent>
@@ -393,7 +395,7 @@ function CreateExamPageContent() {
                                    </div>
                                 </AccordionContent>
                             </AccordionItem>
-                            <AddQuestionButton index={index + 1} />
+                            {index < questions.length -1 && <AddQuestionButton index={index + 1} />}
                         </Fragment>
                        )
                     })}

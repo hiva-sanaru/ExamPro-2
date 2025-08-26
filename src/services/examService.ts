@@ -17,12 +17,22 @@ export async function getExam(id: string): Promise<Exam | null> {
     const docRef = doc(db, 'exams', id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-        const examData = docSnap.data();
+        const examData = docSnap.data() as Exam;
         // Ensure questions array exists
         if (!examData.questions) {
             examData.questions = [];
         }
-        return { id: docSnap.id, type: 'Standard', ...examData } as Exam;
+        
+        // Backwards compatibility for old exam types
+        if ((examData.type as any) === 'Standard') {
+          examData.type = 'WrittenOnly';
+        } else if ((examData.type as any) === 'Promotion') {
+          examData.type = 'WrittenAndInterview';
+        } else if (!examData.type) {
+           examData.type = 'WrittenOnly';
+        }
+
+        return { id: docSnap.id, ...examData };
     }
     return null;
 }
