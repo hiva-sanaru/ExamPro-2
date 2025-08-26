@@ -71,8 +71,15 @@ export const QuestionCard = ({ question, index, answer, onAnswerChange, isLastQu
         newValues[index] = value;
         onAnswerChange(question.id!, newValues);
     };
+
+    const handleDescriptiveChange = (index: number, value: string) => {
+        const newValues = Array.isArray(answer?.value) ? [...answer.value] : [];
+        newValues[index] = value;
+        onAnswerChange(question.id!, newValues);
+    };
     
     const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
+    const isMultiDescriptive = question.type === 'descriptive' && (question.numberOfAnswers || 1) > 1;
 
     return (
         <Card>
@@ -92,14 +99,30 @@ export const QuestionCard = ({ question, index, answer, onAnswerChange, isLastQu
                  <div className="text-lg whitespace-pre-wrap">{question.type !== 'fill-in-the-blank' ? question.text : ''}</div>
                 
                 {!hasSubQuestions && (
-                    <>
-                        {question.type === 'descriptive' && (
+                    <div className="space-y-4 mt-4">
+                        {question.type === 'descriptive' && !isMultiDescriptive && (
                             <Textarea 
                                 placeholder="あなたの答え..." 
                                 rows={8}
                                 value={typeof answer?.value === 'string' ? answer.value : ''}
                                 onChange={(e) => onAnswerChange(question.id!, e.target.value)}
                             />
+                        )}
+                        {isMultiDescriptive && (
+                            <div className="space-y-4">
+                                {Array.from({ length: question.numberOfAnswers! }).map((_, i) => (
+                                    <div key={i}>
+                                        <Label htmlFor={`answer-${question.id}-${i}`}>解答 {i + 1}</Label>
+                                        <Textarea
+                                            id={`answer-${question.id}-${i}`}
+                                            placeholder={`答え ${i + 1} を入力...`}
+                                            rows={3}
+                                            value={Array.isArray(answer?.value) ? (answer.value[i] || '') : ''}
+                                            onChange={(e) => handleDescriptiveChange(i, e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
                         )}
                         {question.type === 'fill-in-the-blank' && (
                            renderFillInTheBlank(question.text, Array.isArray(answer?.value) ? answer.value : [], handleFillInTheBlankChange)
@@ -114,7 +137,7 @@ export const QuestionCard = ({ question, index, answer, onAnswerChange, isLastQu
                                 ))}
                             </RadioGroup>
                         )}
-                    </>
+                    </div>
                 )}
 
 

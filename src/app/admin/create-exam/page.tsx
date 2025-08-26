@@ -63,7 +63,7 @@ function CreateExamPageContent() {
   }, [searchParams, router, toast]);
 
   const handleAddQuestion = (index?: number) => {
-    const newQuestion: Partial<Question> = { id: uuidv4(), text: '', type: 'descriptive', points: 10, timeLimit: 300, modelAnswer: '', options: [], subQuestions: [] };
+    const newQuestion: Partial<Question> = { id: uuidv4(), text: '', type: 'descriptive', points: 10, timeLimit: 300, modelAnswer: '', options: [], subQuestions: [], numberOfAnswers: 1 };
     const newQuestions = [...questions];
     if (index !== undefined) {
       newQuestions.splice(index, 0, newQuestion);
@@ -104,8 +104,7 @@ function CreateExamPageContent() {
     const newQuestions = [...questions];
     const question = newQuestions[index] as Question;
 
-    // Special handling for fill-in-the-blank model answers
-    if (field === 'modelAnswer' && question.type === 'fill-in-the-blank' && typeof value === 'object' && value.index !== undefined) {
+    if (field === 'modelAnswer' && (question.type === 'fill-in-the-blank' || question.type === 'descriptive') && typeof value === 'object' && value.index !== undefined) {
         const answers = Array.isArray(question.modelAnswer) ? [...question.modelAnswer] : [];
         answers[value.index] = value.value;
         question.modelAnswer = answers;
@@ -115,9 +114,13 @@ function CreateExamPageContent() {
         (question as any)[field] = value;
     }
 
-    // Reset modelAnswer if question type changes
+    // Reset modelAnswer if question type changes or numberOfAnswers changes for descriptive
     if (field === 'type') {
       question.modelAnswer = value === 'fill-in-the-blank' ? [] : '';
+      if (value === 'descriptive') question.numberOfAnswers = 1;
+    }
+    if (field === 'numberOfAnswers' && question.type === 'descriptive') {
+      question.modelAnswer = Array(Number(value) || 1).fill('');
     }
 
     setQuestions(newQuestions);
@@ -265,6 +268,7 @@ function CreateExamPageContent() {
                     {questions.length === 0 && <AddQuestionButton index={0} />}
                     {questions.map((q, index) => {
                        const blankCount = q.type === 'fill-in-the-blank' ? (q.text?.match(/___/g) || []).length : 0;
+                       const numAnswers = q.type === 'descriptive' ? (q.numberOfAnswers || 1) : 1;
                        return (
                         <Fragment key={q.id || index}>
                             <AccordionItem value={`item-${index}`} className="border bg-muted/30 rounded-md px-4">
@@ -307,6 +311,12 @@ function CreateExamPageContent() {
                                                     <Input id={`q-time-${index}`} type="number" value={q.timeLimit} onChange={(e) => handleQuestionChange(index, 'timeLimit', Number(e.target.value))} placeholder="例: 300" />
                                                 </div>
                                             </div>
+                                            {q.type === 'descriptive' && (
+                                                <div className="w-1/3 space-y-2">
+                                                    <Label htmlFor={`q-num-answers-${index}`}>要求解答数</Label>
+                                                    <Input id={`q-num-answers-${index}`} type="number" min={1} value={q.numberOfAnswers || 1} onChange={(e) => handleQuestionChange(index, 'numberOfAnswers', Number(e.target.value))} />
+                                                </div>
+                                            )}
                                         </div>
                                        <div className="space-y-2">
                                            <Label htmlFor={`q-text-${index}`}>問題文 {index + 1}</Label>
@@ -343,6 +353,22 @@ function CreateExamPageContent() {
                                                     </div>
                                                 ))}
                                                 {blankCount === 0 && <p className="text-xs text-muted-foreground">問題文に「___」（アンダースコア3つ）を追加して空欄を作成してください。</p>}
+                                                </div>
+                                            ) : q.type === 'descriptive' && numAnswers > 1 ? (
+                                                <div className="space-y-2 pl-4 border-l-2">
+                                                    {Array.from({ length: numAnswers }).map((_, i) => (
+                                                        <div key={i} className="flex items-center gap-2">
+                                                            <Label htmlFor={`q-model-answer-${index}-${i}`} className="w-16">解答 {i + 1}</Label>
+                                                            <Textarea
+                                                                id={`q-model-answer-${index}-${i}`}
+                                                                value={Array.isArray(q.modelAnswer) ? (q.modelAnswer[i] || '') : ''}
+                                                                onChange={(e) => handleQuestionChange(index, 'modelAnswer', { index: i, value: e.target.value })}
+                                                                placeholder={`模範解答 ${i + 1}`}
+                                                                rows={2}
+                                                                className="bg-white dark:bg-gray-950"
+                                                            />
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             ) : (
                                                 <Textarea id={`q-model-answer-${index}`} value={typeof q.modelAnswer === 'string' ? q.modelAnswer : ''} onChange={(e) => handleQuestionChange(index, 'modelAnswer', e.target.value)} placeholder={`問題 ${index + 1} の模範解答を記述...`} rows={3} className="bg-white dark:bg-gray-950" />

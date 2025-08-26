@@ -96,7 +96,12 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
   }
 
   const getAnswerForQuestion = (questionId: string) => {
-    return submission.answers.find((a) => a.questionId === questionId)?.value || "－";
+    const answer = submission.answers.find((a) => a.questionId === questionId);
+    if (!answer) return "－";
+    if (Array.isArray(answer.value)) {
+        return answer.value;
+    }
+    return answer.value || "－";
   };
   
   const handleGradeAllQuestions = async () => {
@@ -105,15 +110,19 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     toast({ title: "全問題のAI採点を開始しました...", description: "完了まで数秒お待ちください。" });
 
     const gradingPromises = exam.questions.map(question => {
-        const answerText = getAnswerForQuestion(question.id!);
-        if (!answerText || answerText === "－" || !question.modelAnswer) {
+        const answerValue = getAnswerForQuestion(question.id!);
+        const answerTexts = Array.isArray(answerValue) ? answerValue.filter(t => t.trim() !== '') : [answerValue.toString()];
+
+        if (answerTexts.length === 0 || answerTexts[0] === "－" || !question.modelAnswer) {
             return Promise.resolve({ questionId: question.id, error: "回答または模範解答がありません" });
         }
+        
+        const modelAnswers = Array.isArray(question.modelAnswer) ? question.modelAnswer : [question.modelAnswer];
 
         return gradeAnswer({
             questionText: question.text,
-            modelAnswer: question.modelAnswer,
-            answerText,
+            modelAnswers: modelAnswers.filter(t => t.trim() !== ''),
+            answerTexts: answerTexts,
             points: question.points,
         }).then(result => ({ questionId: question.id!, ...result }))
           .catch(error => ({ questionId: question.id!, error: error.message }));
@@ -256,6 +265,8 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         {exam.questions.map((question, index) => {
           const result = gradingResults.find((r) => r.questionId === question.id);
           const hqScore = submission.hqGrade?.scores?.[question.id!];
+          const answerValue = getAnswerForQuestion(question.id!);
+          const answerDisplay = Array.isArray(answerValue) ? answerValue.map((a, i) => `(${i+1}) ${a}`).join('\n') : answerValue.toString();
 
           return (
             <Card key={question.id} className="overflow-hidden">
@@ -273,7 +284,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label className="flex items-center gap-2"><User className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                            <p className="p-3 rounded-md bg-muted text-sm min-h-[100px]">{getAnswerForQuestion(question.id!)}</p>
+                            <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{answerDisplay}</p>
                         </div>
                          <div className="space-y-2">
                             <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>

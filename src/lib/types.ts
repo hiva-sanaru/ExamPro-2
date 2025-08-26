@@ -22,6 +22,7 @@ export interface Question {
   options?: string[]; // for selection
   modelAnswer?: string | string[]; // for grading
   subQuestions?: Question[];
+  numberOfAnswers?: number; // For descriptive questions expecting multiple answers
 }
 
 export interface Answer {
