@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, FileCheck2, Users, LogOut, Building, KeyRound, Loader2 } from "lucide-react";
+import { LayoutDashboard, FileCheck2, Users, LogOut, Building, KeyRound, Loader2, BookOpen } from "lucide-react";
 import { findUserByEmployeeId } from "@/services/userService";
 import type { User } from "@/lib/types";
 
@@ -47,6 +47,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         { href: "/admin/users", label: "ユーザー", icon: Users },
         { href: "/admin/headquarters", label: "本部管理", icon: Building },
         { href: "/admin/change-password", label: "パスワード変更", icon: KeyRound },
+        { href: "/admin/manual", label: "マニュアル", icon: BookOpen },
     ]
 
     return (
