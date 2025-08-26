@@ -1,7 +1,7 @@
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, AlertCircle, Wand2, Users, HelpCircle } from "lucide-react";
+import { BookOpen, AlertCircle, Wand2, Users, HelpCircle, ChevronDown } from "lucide-react";
 
 export default function ManualPage() {
   return (
@@ -23,18 +23,24 @@ export default function ManualPage() {
         </CardHeader>
         <CardContent>
           <Accordion type="multiple" className="w-full space-y-4">
+            
             <AccordionItem value="item-1" className="border rounded-lg px-4 bg-muted/30">
-              <AccordionTrigger className="hover:no-underline">
-                <div className="flex items-center gap-3">
-                  <Wand2 className="w-5 h-5 text-primary" />
-                  <div>
-                    <h3 className="font-semibold text-left">試験の作成方法</h3>
-                    <p className="text-sm text-muted-foreground font-normal mt-1">
-                      新しい試験を作成し、問題を追加する手順について説明します。
-                    </p>
-                  </div>
-                </div>
-              </AccordionTrigger>
+              <div className="flex items-center justify-between w-full">
+                <AccordionTrigger noChevron className="flex-1 text-left hover:no-underline p-0 py-3">
+                    <div className="flex items-center gap-3">
+                      <Wand2 className="w-5 h-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold text-left">試験の作成方法</h3>
+                        <p className="text-sm text-muted-foreground font-normal mt-1">
+                          新しい試験を作成し、問題を追加する手順について説明します。
+                        </p>
+                      </div>
+                    </div>
+                </AccordionTrigger>
+                <AccordionTrigger noChevron className="p-2">
+                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                </AccordionTrigger>
+              </div>
               <AccordionContent className="prose prose-sm max-w-none text-foreground pt-2 pb-4">
                 <ol className="list-decimal pl-5 space-y-2">
                   <li><strong>試験管理画面へ移動:</strong> サイドメニューから「試験管理」をクリックします。</li>
@@ -49,17 +55,22 @@ export default function ManualPage() {
             </AccordionItem>
 
             <AccordionItem value="item-2" className="border rounded-lg px-4 bg-muted/30">
-              <AccordionTrigger className="hover:no-underline">
-                 <div className="flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 text-primary" />
-                  <div>
-                    <h3 className="font-semibold text-left">AI採点機能の使い方</h3>
-                    <p className="text-sm text-muted-foreground font-normal mt-1">
-                      AIによる自動採点機能の活用方法と、結果のレビュー手順を解説します。
-                    </p>
-                  </div>
+               <div className="flex items-center justify-between w-full">
+                  <AccordionTrigger noChevron className="flex-1 text-left hover:no-underline p-0 py-3">
+                     <div className="flex items-center gap-3">
+                      <AlertCircle className="w-5 h-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold text-left">AI採点機能の使い方</h3>
+                        <p className="text-sm text-muted-foreground font-normal mt-1">
+                          AIによる自動採点機能の活用方法と、結果のレビュー手順を解説します。
+                        </p>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionTrigger noChevron className="p-2">
+                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                  </AccordionTrigger>
                 </div>
-              </AccordionTrigger>
               <AccordionContent className="prose prose-sm max-w-none text-foreground pt-2 pb-4">
                 <ol className="list-decimal pl-5 space-y-2">
                     <li><strong>提出物レビュー画面へ:</strong> サイドメニューから「提出物」をクリックし、採点したい提出物をリストから選択します。</li>
@@ -73,17 +84,22 @@ export default function ManualPage() {
             </AccordionItem>
 
             <AccordionItem value="item-3" className="border rounded-lg px-4 bg-muted/30">
-              <AccordionTrigger className="hover:no-underline">
-                 <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5 text-primary" />
-                  <div>
-                    <h3 className="font-semibold text-left">ユーザー管理</h3>
-                    <p className="text-sm text-muted-foreground font-normal mt-1">
-                      新しいユーザーの追加、役割の変更、削除方法について説明します。
-                    </p>
+              <div className="flex items-center justify-between w-full">
+                <AccordionTrigger noChevron className="flex-1 text-left hover:no-underline p-0 py-3">
+                   <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-primary" />
+                    <div>
+                      <h3 className="font-semibold text-left">ユーザー管理</h3>
+                      <p className="text-sm text-muted-foreground font-normal mt-1">
+                        新しいユーザーの追加、役割の変更、削除方法について説明します。
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </AccordionTrigger>
+                </AccordionTrigger>
+                <AccordionTrigger noChevron className="p-2">
+                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                </AccordionTrigger>
+              </div>
               <AccordionContent className="prose prose-sm max-w-none text-foreground pt-2 pb-4">
                 <ul className="list-disc pl-5 space-y-2">
                   <li><strong>ユーザーの追加:</strong> 「ユーザー管理」画面の右上にある「ユーザーを追加」ボタンをクリックし、表示されたフォームに名前、社員番号、パスワード、役割、本部を入力して作成します。</li>
@@ -94,17 +110,22 @@ export default function ManualPage() {
             </AccordionItem>
             
             <AccordionItem value="item-4" className="border rounded-lg px-4 bg-muted/30">
-              <AccordionTrigger className="hover:no-underline">
-                 <div className="flex items-center gap-3">
-                  <HelpCircle className="w-5 h-5 text-primary" />
-                  <div>
-                    <h3 className="font-semibold text-left">よくある質問 (FAQ)</h3>
-                    <p className="text-sm text-muted-foreground font-normal mt-1">
-                      システム利用時によくある質問とその回答をまとめています。
-                    </p>
+              <div className="flex items-center justify-between w-full">
+                <AccordionTrigger noChevron className="flex-1 text-left hover:no-underline p-0 py-3">
+                  <div className="flex items-center gap-3">
+                    <HelpCircle className="w-5 h-5 text-primary" />
+                    <div>
+                      <h3 className="font-semibold text-left">よくある質問 (FAQ)</h3>
+                      <p className="text-sm text-muted-foreground font-normal mt-1">
+                        システム利用時によくある質問とその回答をまとめています。
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </AccordionTrigger>
+                </AccordionTrigger>
+                <AccordionTrigger noChevron className="p-2">
+                    <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                </AccordionTrigger>
+              </div>
               <AccordionContent className="prose prose-sm max-w-none text-foreground pt-2 pb-4">
                 <dl className="space-y-4">
                     <div>
