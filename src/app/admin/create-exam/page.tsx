@@ -402,10 +402,11 @@ function CreateExamPageContent() {
                                    </div>
                                 </AccordionContent>
                             </AccordionItem>
-                            {index < questions.length -1 && <AddQuestionButton index={index + 1} />}
+                            {index < questions.length - 1 && <AddQuestionButton index={index + 1} />}
                         </Fragment>
                        )
                     })}
+                     {questions.length > 0 && <AddQuestionButton index={questions.length} />}
                 </Accordion>
             </CardContent>
         </Card>
