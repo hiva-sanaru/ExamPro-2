@@ -288,7 +288,6 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                     <div className="flex justify-between w-full items-center">
                         <div className="text-base font-normal text-left text-primary-foreground">問題 {index + 1}: {question.text} ({question.points}点)</div>
                         <div className="flex items-center gap-2">
-                            {manualScores[question.id!] !== undefined && <Badge variant="secondary">{manualScores[question.id!]}点</Badge>}
                             {result && !result.isLoading && <Badge variant="secondary">AI採点済み</Badge>}
                             {isBulkGrading && <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />}
                         </div>
