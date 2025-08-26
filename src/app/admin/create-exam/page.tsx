@@ -268,7 +268,7 @@ function CreateExamPageContent() {
                        return (
                         <Fragment key={q.id || index}>
                             <AccordionItem value={`item-${index}`} className="border bg-muted/30 rounded-md px-4">
-                                <div className="flex items-center">
+                                <div className="flex items-center justify-between">
                                     <AccordionTrigger className="flex-1 text-left hover:no-underline">
                                         <span className="font-semibold text-lg">問題 {index + 1}: {q.text?.substring(0, 30) || "新しい問題"}...</span>
                                     </AccordionTrigger>
@@ -421,3 +421,5 @@ export default function CreateExamPage() {
     </Suspense>
   )
 }
+
+    
