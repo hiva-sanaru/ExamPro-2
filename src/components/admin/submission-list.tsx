@@ -140,22 +140,26 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
         {
           variants: {
             status: {
-              Completed: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700/40",
-              Submitted: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700/40",
-              Grading: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700/40",
-              "In Progress": "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-700/40",
+              合格: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700/40",
+              不合格: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700/40",
+              本部採点中: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700/40",
+              人事確認中: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700/40",
+              提出済み: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700/40",
               "不明": "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-700/40",
             },
           },
         }
     )
 
-    const getStatusName = (status: Submission['status']) => {
-        switch(status) {
-            case 'Completed': return '完了';
+    const getStatusName = (submission: Submission) => {
+        if (submission.finalOutcome === 'Passed') return '合格';
+        if (submission.finalOutcome === 'Failed') return '不合格';
+        switch(submission.status) {
+            case '本部採点中': return '本部採点中';
+            case '人事確認中': return '人事確認中';
+            case 'Grading': return '本部採点中'; // Legacy support
+            case 'Completed': return '人事確認中'; // Legacy support
             case 'Submitted': return '提出済み';
-            case 'Grading': return '採点中';
-            case 'In Progress': return '進行中';
             default: return '不明';
         }
     }
@@ -191,7 +195,7 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
             localSubmissions.map((submission) => {
                 const exam = examsMap[submission.examId];
                 const examinee = usersMap[submission.examineeId];
-                const statusName = getStatusName(submission.status);
+                const statusName = getStatusName(submission);
                 return (
                     <TableRow key={submission.id}>
                         <TableCell className="font-medium whitespace-nowrap">{exam?.title || '－'}</TableCell>

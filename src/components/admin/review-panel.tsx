@@ -170,7 +170,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             reviewer: mockReviewerName,
             scores: manualScores
         };
-        newStatus = "Grading";
+        newStatus = "本部採点中";
     } else { // Personnel Office
         dataToUpdate.poGrade = {
             score: totalScore,
@@ -180,7 +180,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         };
         dataToUpdate.finalScore = totalScore;
         dataToUpdate.finalOutcome = finalOutcome;
-        newStatus = "Completed";
+        newStatus = "人事確認中";
     }
     
     if (finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
