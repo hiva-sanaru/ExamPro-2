@@ -10,13 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Wand2, User, Check, Loader2, Building, ThumbsUp, ThumbsDown, Calendar, Clock } from "lucide-react";
+import { Bot, Wand2, User, Check, Loader2, Building, ThumbsUp, ThumbsDown, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { updateSubmission } from "@/services/submissionService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ja } from 'date-fns/locale';
 import { useRouter } from "next/navigation";
@@ -165,6 +164,26 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             reviewer: mockReviewerName,
             scores: manualScores
         };
+
+        if (totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission') {
+            if (!date1 || !time1) {
+                toast({ title: "入力エラー", description: "授業審査の第一希望日時を入力してください。", variant: "destructive"});
+                setIsSubmitting(false);
+                return;
+            }
+            const [h1, m1] = time1.split(':').map(Number);
+            const lessonReviewDate1 = new Date(date1);
+            lessonReviewDate1.setHours(h1, m1);
+            dataToUpdate.lessonReviewDate1 = lessonReviewDate1;
+            
+            if (date2 && time2) {
+                const [h2, m2] = time2.split(':').map(Number);
+                const lessonReviewDate2 = new Date(date2);
+                lessonReviewDate2.setHours(h2, m2);
+                dataToUpdate.lessonReviewDate2 = lessonReviewDate2;
+            }
+        }
+
         newStatus = "人事確認中";
     } else { // Personnel Office
         dataToUpdate.poGrade = {
@@ -178,22 +197,6 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
 
         if (finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
             if (exam.lessonReviewType === 'DateSubmission') {
-                if (!date1 || !time1) {
-                    toast({ title: "入力エラー", description: "授業審査の第一希望日時を入力してください。", variant: "destructive"});
-                    setIsSubmitting(false);
-                    return;
-                }
-                const [h1, m1] = time1.split(':').map(Number);
-                const lessonReviewDate1 = new Date(date1);
-                lessonReviewDate1.setHours(h1, m1);
-                dataToUpdate.lessonReviewDate1 = lessonReviewDate1;
-                
-                if (date2 && time2) {
-                    const [h2, m2] = time2.split(':').map(Number);
-                    const lessonReviewDate2 = new Date(date2);
-                    lessonReviewDate2.setHours(h2, m2);
-                    dataToUpdate.lessonReviewDate2 = lessonReviewDate2;
-                }
                 newStatus = '授業審査待ち';
             } else { // UrlSubmission
                 newStatus = '合格'; // Status becomes 'Passed', but they need to submit URL
@@ -218,6 +221,9 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         setIsSubmitting(false);
     }
   }
+
+  const showLessonReviewForm = !isPersonnelOfficeView && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
+
 
   return (
     <Card>
@@ -258,6 +264,15 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                         <Label>当初の全体フィードバック</Label>
                         <p className="text-sm p-2 bg-background rounded-md">{submission.hqGrade.justification || "フィードバックはありません。"}</p>
                     </div>
+                    {submission.lessonReviewDate1 && (
+                        <div className="space-y-2 pt-4 border-t mt-4">
+                           <Label>提案された授業審査日時</Label>
+                           <div className="text-sm">
+                             <p><strong>第一希望:</strong> {format(submission.lessonReviewDate1.toDate(), "PPP HH:mm", { locale: ja })}</p>
+                             {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
+                           </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         )}
@@ -271,7 +286,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             <Card key={question.id} className="overflow-hidden">
                 <CardHeader className="bg-primary/90 text-primary-foreground p-4">
                     <div className="flex justify-between w-full items-center">
-                        <CardTitle className="text-base font-normal text-left text-primary-foreground">問題 {index + 1}: {question.text} ({question.points}点)</CardTitle>
+                        <div className="text-base font-normal text-left text-primary-foreground">問題 {index + 1}: {question.text} ({question.points}点)</div>
                         <div className="flex items-center gap-2">
                             {manualScores[question.id!] !== undefined && <Badge variant="secondary">{manualScores[question.id!]}点</Badge>}
                             {result && !result.isLoading && <Badge variant="secondary">AI採点済み</Badge>}
@@ -354,7 +369,56 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
               </div>
             )}
 
-            {finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
+            {showLessonReviewForm && (
+                 <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800 mt-4">
+                    <CardHeader>
+                         <CardTitle className="text-blue-800 dark:text-blue-300">高得点 - 授業審査へ</CardTitle>
+                         <CardDescription>この受験者は80点以上を獲得しました。授業審査の希望日時を入力してください。</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="date1">第一希望日時</Label>
+                                    <div className="flex gap-2">
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                            <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal bg-white", !date1 && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {date1 ? format(date1, "PPP", { locale: ja }) : <span>日付を選択</span>}
+                                            </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar mode="single" selected={date1} onSelect={setDate1} initialFocus />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <Input type="time" value={time1} onChange={e => setTime1(e.target.value)} className="w-28 bg-white" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="date2">第二希望日時 (任意)</Label>
+                                    <div className="flex gap-2">
+                                         <Popover>
+                                            <PopoverTrigger asChild>
+                                            <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal bg-white", !date2 && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {date2 ? format(date2, "PPP", { locale: ja }) : <span>日付を選択</span>}
+                                            </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0">
+                                                <Calendar mode="single" selected={date2} onSelect={setDate2} />
+                                            </PopoverContent>
+                                        </Popover>
+                                        <Input type="time" value={time2} onChange={e => setTime2(e.target.value)} className="w-28 bg-white"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {isPersonnelOfficeView && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
                  <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
                     <CardHeader>
                          <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>
@@ -364,45 +428,17 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                         {exam.lessonReviewType === 'UrlSubmission' ? (
                             <p>この試験は「YouTube URL提出」形式です。このまま承認すると、受験者のマイページにURL提出フォームが表示されます。</p>
                         ) : (
-                            <div className="space-y-4">
-                                <p>この試験は「希望日時提出」形式です。授業審査の希望日時を入力してください。</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="date1">第一希望日時</Label>
-                                        <div className="flex gap-2">
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal", !date1 && "text-muted-foreground")}>
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {date1 ? format(date1, "PPP", { locale: ja }) : <span>日付を選択</span>}
-                                                </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0">
-                                                    <CalendarComponent mode="single" selected={date1} onSelect={setDate1} initialFocus />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <Input type="time" value={time1} onChange={e => setTime1(e.target.value)} className="w-28" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="date2">第二希望日時</Label>
-                                        <div className="flex gap-2">
-                                             <Popover>
-                                                <PopoverTrigger asChild>
-                                                <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal", !date2 && "text-muted-foreground")}>
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {date2 ? format(date2, "PPP", { locale: ja }) : <span>日付を選択</span>}
-                                                </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0">
-                                                    <CalendarComponent mode="single" selected={date2} onSelect={setDate2} />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <Input type="time" value={time2} onChange={e => setTime2(e.target.value)} className="w-28"/>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                           submission.lessonReviewDate1 ? (
+                             <div className="space-y-2">
+                               <Label>本部担当者が入力した希望日時</Label>
+                                <div className="text-sm">
+                                  <p><strong>第一希望:</strong> {format(submission.lessonReviewDate1.toDate(), "PPP HH:mm", { locale: ja })}</p>
+                                  {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
+                               </div>
+                             </div>
+                           ) : (
+                            <p className="text-destructive">本部担当者によって希望日時が入力されていません。本部担当者に確認してください。</p>
+                           )
                         )}
                     </CardContent>
                 </Card>
