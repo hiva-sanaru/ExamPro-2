@@ -28,6 +28,7 @@ function CreateExamPageContent() {
   const [examType, setExamType] = useState<Exam['type']>('WrittenOnly');
   const [questions, setQuestions] = useState<Partial<Question>[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTempSaving, setIsTempSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -135,7 +136,7 @@ function CreateExamPageContent() {
       }
   }
   
-  const handleSaveExam = async () => {
+  const handleSaveExam = async (redirect: boolean = true) => {
       if (!title) {
         toast({
             title: "保存エラー",
@@ -144,7 +145,13 @@ function CreateExamPageContent() {
         });
         return;
       }
-      setIsSaving(true);
+
+      if (redirect) {
+        setIsSaving(true);
+      } else {
+        setIsTempSaving(true);
+      }
+      
       const totalPoints = questions.reduce((acc, q) => {
         const mainPoints = q.points || 0;
         const subPoints = q.subQuestions?.reduce((subAcc, subQ) => subAcc + (subQ.points || 0), 0) || 0;
@@ -165,14 +172,24 @@ function CreateExamPageContent() {
           await updateExam(examId, examData);
           toast({ title: '試験が正常に更新されました！' });
         } else {
-          await addExam(examData as Omit<Exam, 'id'>);
+          const newExamId = await addExam(examData as Omit<Exam, 'id'>);
+          setExamId(newExamId);
+          // Update URL without full page reload
+          router.replace(`/admin/create-exam?examId=${newExamId}`, { scroll: false });
           toast({ title: '試験が正常に作成されました！' });
         }
-        router.push('/admin/dashboard');
+        if (redirect) {
+          router.push('/admin/dashboard');
+        }
       } catch(error) {
         console.error("Failed to save exam", error);
         toast({ title: "保存エラー", description: "試験の保存中にエラーが発生しました。", variant: "destructive" });
-        setIsSaving(false);
+      } finally {
+        if (redirect) {
+          setIsSaving(false);
+        } else {
+          setIsTempSaving(false);
+        }
       }
   }
 
@@ -428,18 +445,21 @@ function CreateExamPageContent() {
                                    </div>
                                 </AccordionContent>
                             </AccordionItem>
-                            {index < questions.length - 1 && <AddQuestionButton index={index + 1} />}
+                             {index === questions.length - 1 && <AddQuestionButton index={index + 1} />}
                         </Fragment>
                        )
                     })}
-                     {questions.length > 0 && <AddQuestionButton index={questions.length} />}
                 </Accordion>
             </CardContent>
         </Card>
       </div>
 
-       <div className="flex justify-center mt-6">
-            <Button size="lg" onClick={handleSaveExam} disabled={isSaving}>
+       <div className="flex justify-center mt-6 gap-4">
+            <Button variant="outline" size="lg" onClick={() => handleSaveExam(false)} disabled={isTempSaving || isSaving}>
+                {isTempSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                {isTempSaving ? "保存中..." : "一時保存"}
+            </Button>
+            <Button size="lg" onClick={() => handleSaveExam(true)} disabled={isSaving || isTempSaving}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 {isSaving ? "保存中..." : "試験を保存"}
             </Button>
@@ -455,5 +475,3 @@ export default function CreateExamPage() {
     </Suspense>
   )
 }
-
-    
