@@ -455,7 +455,7 @@ function CreateExamPageContent() {
       </div>
 
        <div className="flex justify-center mt-6 gap-4">
-            <Button variant="outline" size="lg" onClick={() => handleSaveExam(false)} disabled={isTempSaving || isSaving}>
+            <Button variant="default" size="lg" onClick={() => handleSaveExam(false)} disabled={isTempSaving || isSaving} className="bg-purple-600 hover:bg-purple-700 text-white">
                 {isTempSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 {isTempSaving ? "保存中..." : "一時保存"}
             </Button>
