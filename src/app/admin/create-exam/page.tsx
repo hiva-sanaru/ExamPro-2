@@ -288,35 +288,35 @@ function CreateExamPageContent() {
                                 <AccordionContent className="pt-4">
                                    <div className="flex-grow space-y-4 pr-4">
                                         <div className="space-y-4 p-4 border rounded-lg bg-yellow-100 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-                                            <div className="flex gap-4">
-                                                    <div className="w-1/3 space-y-2">
-                                                    <Label htmlFor={`q-type-${index}`}>問題タイプ</Label>
-                                                    <Select value={q.type} onValueChange={(value) => handleQuestionChange(index, 'type', value)}>
-                                                            <SelectTrigger id={`q-type-${index}`}>
-                                                                <SelectValue placeholder="タイプを選択" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="descriptive">記述式</SelectItem>
-                                                                <SelectItem value="fill-in-the-blank">穴埋め</SelectItem>
-                                                                <SelectItem value="selection">選択式</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                </div>
-                                                <div className="w-1/3 space-y-2">
-                                                    <Label htmlFor={`q-points-${index}`}>配点</Label>
-                                                    <Input id={`q-points-${index}`} type="number" value={q.points} onChange={(e) => handleQuestionChange(index, 'points', Number(e.target.value))} placeholder="例: 10" />
-                                                </div>
-                                                <div className="w-1/3 space-y-2">
-                                                    <Label htmlFor={`q-time-${index}`}>制限時間(秒)</Label>
-                                                    <Input id={`q-time-${index}`} type="number" value={q.timeLimit} onChange={(e) => handleQuestionChange(index, 'timeLimit', Number(e.target.value))} placeholder="例: 300" />
-                                                </div>
+                                            <div className="flex flex-wrap gap-4">
+                                                <div className="flex-1 min-w-[150px] space-y-2">
+                                                <Label htmlFor={`q-type-${index}`}>問題タイプ</Label>
+                                                <Select value={q.type} onValueChange={(value) => handleQuestionChange(index, 'type', value)}>
+                                                        <SelectTrigger id={`q-type-${index}`}>
+                                                            <SelectValue placeholder="タイプを選択" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="descriptive">記述式</SelectItem>
+                                                            <SelectItem value="fill-in-the-blank">穴埋め</SelectItem>
+                                                            <SelectItem value="selection">選択式</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                            </div>
+                                            <div className="flex-1 min-w-[120px] space-y-2">
+                                                <Label htmlFor={`q-points-${index}`}>配点</Label>
+                                                <Input id={`q-points-${index}`} type="number" value={q.points} onChange={(e) => handleQuestionChange(index, 'points', Number(e.target.value))} placeholder="例: 10" />
+                                            </div>
+                                            <div className="flex-1 min-w-[120px] space-y-2">
+                                                <Label htmlFor={`q-time-${index}`}>制限時間(秒)</Label>
+                                                <Input id={`q-time-${index}`} type="number" value={q.timeLimit} onChange={(e) => handleQuestionChange(index, 'timeLimit', Number(e.target.value))} placeholder="例: 300" />
                                             </div>
                                             {q.type === 'descriptive' && (
-                                                <div className="w-1/3 space-y-2">
+                                                <div className="flex-1 min-w-[120px] space-y-2">
                                                     <Label htmlFor={`q-num-answers-${index}`}>要求解答数</Label>
                                                     <Input id={`q-num-answers-${index}`} type="number" min={1} value={q.numberOfAnswers || 1} onChange={(e) => handleQuestionChange(index, 'numberOfAnswers', Number(e.target.value))} />
                                                 </div>
                                             )}
+                                            </div>
                                         </div>
                                        <div className="space-y-2">
                                            <Label htmlFor={`q-text-${index}`}>問題文 {index + 1}</Label>
