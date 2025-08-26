@@ -144,7 +144,6 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
               不合格: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700/40",
               本部採点中: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700/40",
               人事確認中: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700/40",
-              提出済み: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700/40",
               "不明": "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-700/40",
             },
           },
@@ -153,16 +152,19 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
 
     const getStatusName = (submission: Submission) => {
         // Final outcome takes precedence
-        if (submission.status === '合格' || submission.finalOutcome === 'Passed') return '合格';
-        if (submission.status === '不合格' || submission.finalOutcome === 'Failed') return '不合格';
+        if (submission.finalOutcome === 'Passed') return '合格';
+        if (submission.finalOutcome === 'Failed') return '不合格';
 
         switch(submission.status) {
             case '人事確認中': return '人事確認中';
-            case 'Submitted': return '提出済み';
+            case 'Submitted': return '本部採点中';
             // Legacy statuses
-            case '本部採点中': return '人事確認中'; 
-            case 'Grading': return '人事確認中'; 
-            case 'Completed': return '人事確認中';
+            case '本部採点中': return '人事確認中';
+            case 'Grading': return '人事確認中';
+            case 'Completed': 
+                 if (submission.finalOutcome === 'Passed') return '合格';
+                 if (submission.finalOutcome === 'Failed') return '不合格';
+                 return '人事確認中';
             default: return '不明';
         }
     }
