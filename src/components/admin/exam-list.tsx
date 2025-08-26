@@ -124,8 +124,8 @@ export function ExamList({ isAdmin }: ExamListProps) {
                     {exam.type === 'WrittenAndInterview' ? '筆記＋授業審査' : '筆記のみ'}
                  </Badge>
               </TableCell>
-              <TableCell>{exam.questions.length}</TableCell>
-              <TableCell>{exam.totalPoints}</TableCell>
+              <TableCell>{exam.questions.length} 問</TableCell>
+              <TableCell>{exam.totalPoints} 点</TableCell>
               <TableCell>{exam.duration} 分</TableCell>
               <TableCell className="text-right">
                 <AlertDialog>
