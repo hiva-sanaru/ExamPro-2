@@ -131,7 +131,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     
     results.forEach(result => {
         if ('error' in result) {
-            console.error(`AI採点エラー (Q${result.questionId}):`, result.error);
+            // Do not log error to console, just skip this question.
         } else {
             newGradingResults.push({
                 questionId: result.questionId,
