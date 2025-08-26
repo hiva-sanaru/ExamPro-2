@@ -9,12 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, Trash2, Loader2, Save, CornerDownLeft, ChevronDown } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Save, CornerDownLeft, ChevronDown, Wand2 } from 'lucide-react';
 import type { Question, Exam } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addExam, getExam, updateExam } from '@/services/examService';
 import { v4 as uuidv4 } from 'uuid';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { suggestTimeLimits } from '@/ai/flows/suggest-time-limits';
 
 
 function CreateExamPageContent() {
@@ -30,6 +31,8 @@ function CreateExamPageContent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isTempSaving, setIsTempSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSuggestingTime, setIsSuggestingTime] = useState(false);
+
 
   useEffect(() => {
     const id = searchParams.get('examId');
@@ -193,6 +196,44 @@ function CreateExamPageContent() {
       }
   }
 
+  const handleSuggestTimeLimits = async () => {
+    if (questions.length === 0) {
+      toast({ title: "エラー", description: "時間を配分する問題がありません。", variant: "destructive" });
+      return;
+    }
+    setIsSuggestingTime(true);
+    try {
+      const questionInfo = questions.map(q => ({
+        text: q.text || '',
+        type: q.type || 'descriptive',
+        points: q.points || 0,
+      }));
+      
+      const result = await suggestTimeLimits({
+        totalDurationInMinutes: duration,
+        questions: questionInfo,
+      });
+      
+      const { suggestedTimesInSeconds } = result;
+
+      if (suggestedTimesInSeconds && suggestedTimesInSeconds.length === questions.length) {
+        const newQuestions = questions.map((q, index) => ({
+          ...q,
+          timeLimit: suggestedTimesInSeconds[index],
+        }));
+        setQuestions(newQuestions);
+        toast({ title: "成功", description: "AIが各問題の制限時間を提案しました。" });
+      } else {
+        throw new Error("AIからの提案の形式が正しくありません。");
+      }
+    } catch (error) {
+      console.error("Failed to suggest time limits", error);
+      toast({ title: "AI提案エラー", description: "AIによる時間配分の提案中にエラーが発生しました。", variant: "destructive" });
+    } finally {
+      setIsSuggestingTime(false);
+    }
+  };
+
   if (isLoading) {
     return (
         <div className="flex justify-center items-center h-full">
@@ -267,7 +308,13 @@ function CreateExamPageContent() {
                         </div>
                         <div className="space-y-2 flex-1">
                             <Label htmlFor="exam-duration">試験時間（分）</Label>
-                            <Input id="exam-duration" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full bg-white dark:bg-gray-950" />
+                            <div className="flex items-center gap-2">
+                                <Input id="exam-duration" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full bg-white dark:bg-gray-950" />
+                                <Button variant="outline" onClick={handleSuggestTimeLimits} disabled={isSuggestingTime}>
+                                  {isSuggestingTime ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                                  AIで配分
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
