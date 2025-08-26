@@ -270,7 +270,7 @@ function CreateExamPageContent() {
                             <AccordionItem value={`item-${index}`} className="border bg-muted/30 rounded-md px-4">
                                 <div className="flex items-center justify-between w-full">
                                     <AccordionTrigger noChevron className="flex-1 text-left hover:no-underline p-0">
-                                        <span className="font-semibold text-lg py-4 truncate">問題 {index + 1}: {q.text?.substring(0, 30) || "新しい問題"}...</span>
+                                        <span className="font-semibold text-lg py-4 truncate">問題 {index + 1}: {q.text?.substring(0, 33) || "新しい問題"}...</span>
                                     </AccordionTrigger>
                                     <div className="flex items-center">
                                         <AccordionTrigger noChevron className="p-0">
