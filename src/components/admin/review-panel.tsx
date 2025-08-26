@@ -47,8 +47,8 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
   const [overallFeedback, setOverallFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBulkGrading, setIsBulkGrading] = useState(false);
-
   const isPersonnelOfficeView = reviewerRole === "人事室";
+
   const [finalScore, setFinalScore] = useState<number | undefined>(submission.finalScore);
   const [finalOutcome, setFinalOutcome] = useState<'Passed' | 'Failed' | undefined>(submission.finalOutcome);
 
@@ -271,7 +271,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             <Card key={question.id} className="overflow-hidden">
                 <CardHeader className="bg-primary/90 text-primary-foreground p-4">
                     <div className="flex justify-between w-full items-center">
-                        <CardTitle className="text-lg font-semibold text-left text-primary-foreground">問題 {index + 1}: {question.text} ({question.points}点)</CardTitle>
+                        <CardTitle className="text-base font-normal text-left text-primary-foreground">問題 {index + 1}: {question.text} ({question.points}点)</CardTitle>
                         <div className="flex items-center gap-2">
                             {manualScores[question.id!] !== undefined && <Badge variant="secondary">{manualScores[question.id!]}点</Badge>}
                             {result && !result.isLoading && <Badge variant="secondary">AI採点済み</Badge>}
