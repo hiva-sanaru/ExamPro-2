@@ -446,7 +446,7 @@ function CreateExamPageContent() {
                                                         id={`q-criteria-${index}`}
                                                         value={q.gradingCriteria || ''} 
                                                         onChange={(e) => handleQuestionChange(index, 'gradingCriteria', e.target.value)} 
-                                                        placeholder="AIが採点するための基準を入力します。例：・〇〇のキーワードが含まれているか(10点) ・具体的な数値を交えて説明できているか(5点)" 
+                                                        placeholder="例：・〇〇のキーワードが含まれているか(10点) ・具体的な数値を交えて説明できているか(5点)" 
                                                         rows={3}
                                                         className="bg-white dark:bg-gray-950"
                                                     />
