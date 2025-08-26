@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { PlusCircle, Trash2, Loader2, Save, CornerDownLeft } from 'lucide-react';
+import { PlusCircle, Trash2, Loader2, Save, CornerDownLeft, ChevronDown } from 'lucide-react';
 import type { Question, Exam } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { addExam, getExam, updateExam } from '@/services/examService';
@@ -268,9 +268,12 @@ function CreateExamPageContent() {
                        return (
                         <Fragment key={q.id || index}>
                             <AccordionItem value={`item-${index}`} className="border bg-muted/30 rounded-md px-4">
-                                <div className="flex items-center justify-between">
-                                    <AccordionTrigger className="flex-1 text-left hover:no-underline">
+                                <div className="flex items-center w-full">
+                                    <AccordionTrigger noChevron className="flex-1 text-left hover:no-underline">
                                         <span className="font-semibold text-lg">問題 {index + 1}: {q.text?.substring(0, 30) || "新しい問題"}...</span>
+                                    </AccordionTrigger>
+                                    <AccordionTrigger>
+                                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                                     </AccordionTrigger>
                                     <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(index)} className="ml-2">
                                         <Trash2 className="h-5 w-5 text-destructive" />
@@ -421,5 +424,3 @@ export default function CreateExamPage() {
     </Suspense>
   )
 }
-
-    
