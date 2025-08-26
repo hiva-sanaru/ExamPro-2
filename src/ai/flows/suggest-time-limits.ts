@@ -40,7 +40,7 @@ const prompt = ai.definePrompt({
 
 問題リスト:
 {{#each questions}}
-- 問題{{@index + 1}}:
+- 問題{{@index}}:
   - タイプ: {{this.type}}
   - 配点: {{this.points}}
   - 問題文: "{{this.text}}"
