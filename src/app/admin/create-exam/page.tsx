@@ -268,16 +268,18 @@ function CreateExamPageContent() {
                        return (
                         <Fragment key={q.id || index}>
                             <AccordionItem value={`item-${index}`} className="border bg-muted/30 rounded-md px-4">
-                                <div className="flex items-center w-full">
+                                <div className="flex items-center justify-between w-full">
                                     <AccordionTrigger noChevron className="flex-1 text-left hover:no-underline p-0">
-                                        <span className="font-semibold text-lg py-4">問題 {index + 1}: {q.text?.substring(0, 30) || "新しい問題"}...</span>
+                                        <span className="font-semibold text-lg py-4 truncate">問題 {index + 1}: {q.text?.substring(0, 30) || "新しい問題"}...</span>
                                     </AccordionTrigger>
-                                    <AccordionTrigger noChevron className="p-0">
-                                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-                                    </AccordionTrigger>
-                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(index)} className="ml-2">
-                                        <Trash2 className="h-5 w-5 text-destructive" />
-                                    </Button>
+                                    <div className="flex items-center">
+                                        <AccordionTrigger noChevron className="p-0">
+                                            <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                                        </AccordionTrigger>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveQuestion(index)} className="ml-2">
+                                            <Trash2 className="h-5 w-5 text-destructive" />
+                                        </Button>
+                                    </div>
                                 </div>
                                 <AccordionContent className="pt-4">
                                    <div className="flex-grow space-y-4 pr-4">
