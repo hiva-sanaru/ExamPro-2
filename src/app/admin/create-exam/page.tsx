@@ -393,10 +393,12 @@ function CreateExamPageContent() {
                                                ))}
                                            </div>
                                        )}
-                                       <Button variant="outline" size="sm" onClick={() => handleAddSubQuestion(index)}>
-                                           <CornerDownLeft className="mr-2 h-4 w-4" />
-                                           サブ問題を追加
-                                       </Button>
+                                       <div className="flex justify-center">
+                                            <Button variant="outline" size="sm" onClick={() => handleAddSubQuestion(index)}>
+                                                <CornerDownLeft className="mr-2 h-4 w-4" />
+                                                サブ問題を追加
+                                            </Button>
+                                       </div>
                                    </div>
                                 </AccordionContent>
                             </AccordionItem>
