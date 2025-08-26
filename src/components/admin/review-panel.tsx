@@ -59,15 +59,13 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
   const [lessonReviewEndDate2, setLessonReviewEndDate2] = useState<Date | undefined>(submission.lessonReviewEndDate2);
 
   const [finalScore, setFinalScore] = useState<number | undefined>(submission.finalScore);
-
   const isPersonnelOfficeView = reviewerRole === "人事室";
+  const [finalOutcome, setFinalOutcome] = useState<'Passed' | 'Failed' | undefined>(submission.finalOutcome);
 
   const totalScore = useMemo(() => {
     return Object.values(manualScores).reduce((acc, score) => acc + (score || 0), 0);
   }, [manualScores]);
   
-  const [finalOutcome, setFinalOutcome] = useState<'Passed' | 'Failed' | undefined>(submission.finalOutcome);
-
   useEffect(() => {
     // Set initial outcome based on score if it's not already set
     if (finalOutcome === undefined && isPersonnelOfficeView) {
@@ -125,6 +123,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         return gradeAnswer({
             questionText: question.text,
             modelAnswers: modelAnswers.filter(t => t.trim() !== ''),
+            gradingCriteria: question.gradingCriteria,
             answerTexts: answerTexts,
             points: question.points,
         }).then(result => ({ questionId: question.id!, ...result }))
@@ -485,5 +484,3 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     </Card>
   );
 }
-
-    

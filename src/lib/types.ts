@@ -21,6 +21,7 @@ export interface Question {
   timeLimit?: number; // in seconds
   options?: string[]; // for selection
   modelAnswer?: string | string[]; // for grading
+  gradingCriteria?: string;
   subQuestions?: Question[];
   numberOfAnswers?: number; // For descriptive questions expecting multiple answers
 }
@@ -72,5 +73,3 @@ export interface Headquarters {
   code: string;
   name: string;
 }
-
-    

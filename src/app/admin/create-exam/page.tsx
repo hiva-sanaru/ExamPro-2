@@ -67,7 +67,7 @@ function CreateExamPageContent() {
   }, [searchParams, router, toast]);
 
   const handleAddQuestion = (index?: number) => {
-    const newQuestion: Partial<Question> = { id: uuidv4(), text: '', type: 'descriptive', points: 10, timeLimit: 300, modelAnswer: '', options: [], subQuestions: [], numberOfAnswers: 1 };
+    const newQuestion: Partial<Question> = { id: uuidv4(), text: '', type: 'descriptive', points: 10, timeLimit: 300, modelAnswer: '', gradingCriteria: '', options: [], subQuestions: [], numberOfAnswers: 1 };
     const newQuestions = [...questions];
     if (index !== undefined) {
       newQuestions.splice(index, 0, newQuestion);
@@ -89,6 +89,7 @@ function CreateExamPageContent() {
         type: 'descriptive',
         points: 5,
         modelAnswer: '',
+        gradingCriteria: '',
     });
     setQuestions(newQuestions);
   }
@@ -400,44 +401,57 @@ function CreateExamPageContent() {
                                           </div>
                                         )}
                                         {(!q.subQuestions || q.subQuestions.length === 0) && (
-                                            <div className="space-y-2">
-                                            <Label>模範解答</Label>
-                                            {q.type === 'fill-in-the-blank' ? (
-                                                <div className="space-y-2 pl-4 border-l-2">
-                                                {Array.from({ length: blankCount }).map((_, i) => (
-                                                    <div key={i} className="flex items-center gap-2">
-                                                    <Label htmlFor={`q-model-answer-${index}-${i}`} className="w-16">空欄 {i + 1}</Label>
-                                                    <Input
-                                                        id={`q-model-answer-${index}-${i}`}
-                                                        value={Array.isArray(q.modelAnswer) ? (q.modelAnswer[i] || '') : ''}
-                                                        onChange={(e) => handleQuestionChange(index, 'modelAnswer', { index: i, value: e.target.value })}
-                                                        placeholder={`空欄 ${i + 1} の答え`}
-                                                        className="bg-white dark:bg-gray-950"
-                                                    />
-                                                    </div>
-                                                ))}
-                                                {blankCount === 0 && <p className="text-xs text-muted-foreground">問題文に「___」（アンダースコア3つ）を追加して空欄を作成してください。</p>}
-                                                </div>
-                                            ) : q.type === 'descriptive' && numAnswers > 1 ? (
-                                                <div className="space-y-2 pl-4 border-l-2">
-                                                    {Array.from({ length: numAnswers }).map((_, i) => (
+                                            <>
+                                                <div className="space-y-2">
+                                                <Label>模範解答</Label>
+                                                {q.type === 'fill-in-the-blank' ? (
+                                                    <div className="space-y-2 pl-4 border-l-2">
+                                                    {Array.from({ length: blankCount }).map((_, i) => (
                                                         <div key={i} className="flex items-center gap-2">
-                                                            <Label htmlFor={`q-model-answer-${index}-${i}`} className="w-16">解答 {i + 1}</Label>
-                                                            <Textarea
-                                                                id={`q-model-answer-${index}-${i}`}
-                                                                value={Array.isArray(q.modelAnswer) ? (q.modelAnswer[i] || '') : ''}
-                                                                onChange={(e) => handleQuestionChange(index, 'modelAnswer', { index: i, value: e.target.value })}
-                                                                placeholder={`模範解答 ${i + 1}`}
-                                                                rows={2}
-                                                                className="bg-white dark:bg-gray-950"
-                                                            />
+                                                        <Label htmlFor={`q-model-answer-${index}-${i}`} className="w-16">空欄 {i + 1}</Label>
+                                                        <Input
+                                                            id={`q-model-answer-${index}-${i}`}
+                                                            value={Array.isArray(q.modelAnswer) ? (q.modelAnswer[i] || '') : ''}
+                                                            onChange={(e) => handleQuestionChange(index, 'modelAnswer', { index: i, value: e.target.value })}
+                                                            placeholder={`空欄 ${i + 1} の答え`}
+                                                            className="bg-white dark:bg-gray-950"
+                                                        />
                                                         </div>
                                                     ))}
+                                                    {blankCount === 0 && <p className="text-xs text-muted-foreground">問題文に「___」（アンダースコア3つ）を追加して空欄を作成してください。</p>}
+                                                    </div>
+                                                ) : q.type === 'descriptive' && numAnswers > 1 ? (
+                                                    <div className="space-y-2 pl-4 border-l-2">
+                                                        {Array.from({ length: numAnswers }).map((_, i) => (
+                                                            <div key={i} className="flex items-center gap-2">
+                                                                <Label htmlFor={`q-model-answer-${index}-${i}`} className="w-16">解答 {i + 1}</Label>
+                                                                <Textarea
+                                                                    id={`q-model-answer-${index}-${i}`}
+                                                                    value={Array.isArray(q.modelAnswer) ? (q.modelAnswer[i] || '') : ''}
+                                                                    onChange={(e) => handleQuestionChange(index, 'modelAnswer', { index: i, value: e.target.value })}
+                                                                    placeholder={`模範解答 ${i + 1}`}
+                                                                    rows={2}
+                                                                    className="bg-white dark:bg-gray-950"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <Textarea id={`q-model-answer-${index}`} value={typeof q.modelAnswer === 'string' ? q.modelAnswer : ''} onChange={(e) => handleQuestionChange(index, 'modelAnswer', e.target.value)} placeholder={`問題 ${index + 1} の模範解答を記述...`} rows={3} className="bg-white dark:bg-gray-950" />
+                                                )}
                                                 </div>
-                                            ) : (
-                                                <Textarea id={`q-model-answer-${index}`} value={typeof q.modelAnswer === 'string' ? q.modelAnswer : ''} onChange={(e) => handleQuestionChange(index, 'modelAnswer', e.target.value)} placeholder={`問題 ${index + 1} の模範解答を記述...`} rows={3} className="bg-white dark:bg-gray-950" />
-                                            )}
-                                            </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`q-criteria-${index}`}>採点基準</Label>
+                                                    <Textarea 
+                                                        id={`q-criteria-${index}`}
+                                                        value={q.gradingCriteria || ''} 
+                                                        onChange={(e) => handleQuestionChange(index, 'gradingCriteria', e.target.value)} 
+                                                        placeholder="AIが採点するための基準を入力します。例：・〇〇のキーワードが含まれているか(10点) ・具体的な数値を交えて説明できているか(5点)" 
+                                                        rows={3}
+                                                        className="bg-white dark:bg-gray-950"
+                                                    />
+                                                </div>
+                                            </>
                                         )}
 
                                        {/* Sub Questions */}
@@ -454,6 +468,17 @@ function CreateExamPageContent() {
                                                                 <div className="space-y-2">
                                                                     <Label htmlFor={`subq-model-answer-${index}-${subIndex}`}>模範解答</Label>
                                                                     <Textarea id={`subq-model-answer-${index}-${subIndex}`} value={typeof subQ.modelAnswer === 'string' ? subQ.modelAnswer : ''} onChange={(e) => handleSubQuestionChange(index, subIndex, 'modelAnswer', e.target.value)} placeholder={`サブ問題 ${subIndex + 1} の模範解答...`} rows={2} className="bg-white dark:bg-gray-950" />
+                                                                </div>
+                                                                 <div className="space-y-2">
+                                                                    <Label htmlFor={`subq-criteria-${index}-${subIndex}`}>採点基準</Label>
+                                                                    <Textarea 
+                                                                        id={`subq-criteria-${index}-${subIndex}`}
+                                                                        value={subQ.gradingCriteria || ''}
+                                                                        onChange={(e) => handleSubQuestionChange(index, subIndex, 'gradingCriteria', e.target.value)}
+                                                                        placeholder="サブ問題の採点基準..." 
+                                                                        rows={2}
+                                                                        className="bg-white dark:bg-gray-950"
+                                                                    />
                                                                 </div>
                                                                 <div className="flex gap-4">
                                                                     <div className="w-1/2 space-y-2">
