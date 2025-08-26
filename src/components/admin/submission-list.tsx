@@ -98,7 +98,7 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
             await updateSubmission(submission.id, { resultCommunicated: updatedStatus });
             toast({
                 title: "ステータスが更新されました",
-                description: `提出ID ${submission.id} の結果伝達ステータスが変更されました。`,
+                description: `結果伝達ステータスが変更されました。`,
             });
         } catch (error) {
             // Revert on error
