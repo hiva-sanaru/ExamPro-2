@@ -53,9 +53,8 @@ export function ExamView({ exam }: ExamViewProps) {
             if (remaining > 0) {
                 setExamTimeLeft(remaining);
             } else {
-                const newEndTime = now + exam.duration * 60 * 1000;
-                localStorage.setItem(`exam-${exam.id}-endTime`, newEndTime.toString());
-                setExamTimeLeft(exam.duration * 60);
+                // If time expired while window was closed, set to 0 and let other effects handle it.
+                setExamTimeLeft(0);
             }
         } else {
             const newEndTime = now + exam.duration * 60 * 1000;
@@ -75,9 +74,9 @@ export function ExamView({ exam }: ExamViewProps) {
   
   // Save answers to localStorage whenever they change
   useEffect(() => {
-    if (!exam) return;
+    if (!exam || isLoading) return;
     localStorage.setItem(`exam-${exam.id}-answers`, JSON.stringify(answers));
-  }, [answers, exam]);
+  }, [answers, isLoading]);
 
   const handleNext = useCallback(() => {
     if (api) {
@@ -93,17 +92,24 @@ export function ExamView({ exam }: ExamViewProps) {
   useEffect(() => {
     if (!api) return
     
-    setCount(api.scrollSnapList().length)
+    const newCount = api.scrollSnapList().length;
+    setCount(newCount);
     setCurrent(api.selectedScrollSnap() + 1)
 
-    api.on("select", () => {
+    const onSelect = () => {
       const selectedIndex = api.selectedScrollSnap();
       setCurrent(selectedIndex + 1)
-    })
+    }
+
+    api.on("select", onSelect);
+
+    return () => {
+      api.off("select", onSelect);
+    }
   }, [api])
 
   useEffect(() => {
-    if (!exam) return;
+    if (count === 0) return;
     const answeredCount = answers.filter(a => {
         if (Array.isArray(a.subAnswers) && a.subAnswers.length > 0) {
             return a.subAnswers.some(sa => sa.value.toString().trim() !== '');
@@ -113,8 +119,8 @@ export function ExamView({ exam }: ExamViewProps) {
         }
         return a.value && a.value.toString().trim() !== '';
     }).length;
-    setProgress((answeredCount / exam.questions.length) * 100);
-  }, [answers, exam]);
+    setProgress((answeredCount / count) * 100);
+  }, [answers, count]);
 
   const handleAnswerChange = (questionId: string, value: string | string[] | Answer[]) => {
     setAnswers((prev) => {
@@ -178,6 +184,8 @@ export function ExamView({ exam }: ExamViewProps) {
   useEffect(() => {
     if (isLoading || current <= 0 || !exam) return;
     const qIndex = current - 1;
+    if (qIndex >= exam.questions.length) return;
+    
     const question = exam.questions[qIndex];
     if (!question || !question.timeLimit) {
       setQuestionEndTime(null);
@@ -233,10 +241,10 @@ export function ExamView({ exam }: ExamViewProps) {
   }, [toast, handleNext]);
 
   useEffect(() => {
-    if (questionTimeLeft === 0 && !isLoading) {
+    if (questionTimeLeft === 0 && !isLoading && questionEndTime != null) {
       handleQuestionTimeUp();
     }
-  }, [questionTimeLeft, isLoading, handleQuestionTimeUp]);
+  }, [questionTimeLeft, isLoading, questionEndTime, handleQuestionTimeUp]);
 
 
   if (isLoading || !exam) {
@@ -255,11 +263,12 @@ export function ExamView({ exam }: ExamViewProps) {
             <div>
                 <Progress value={progress} className="h-2" />
                 <p className="text-right text-sm text-muted-foreground mt-2">
-                    {count} 問中 {current} 問目
+                    {count > 0 ? `${count} 問中 ${current} 問目` : ''}
                 </p>
             </div>
           
             <Carousel setApi={setApi} className="w-full" opts={{
+                watchDrag: false,
                 watchKeys: false,
             }}>
                 <CarouselContent>
