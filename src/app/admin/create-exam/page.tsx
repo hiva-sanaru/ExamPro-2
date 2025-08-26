@@ -301,7 +301,7 @@ function CreateExamPageContent() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Draft">下書き</SelectItem>
-                                    <SelectItem value="Published">公開済み</SelectItem>
+                                    <SelectItem value="Published">公開</SelectItem>
                                     <SelectItem value="Archived">アーカイブ済み</SelectItem>
                                 </SelectContent>
                             </Select>

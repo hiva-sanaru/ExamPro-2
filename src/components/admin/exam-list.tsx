@@ -116,7 +116,7 @@ export function ExamList({ isAdmin }: ExamListProps) {
               <TableCell className="font-medium">{exam.title}</TableCell>
               <TableCell>
                 <Badge variant="outline" className={badgeVariants({ status: exam.status })}>
-                  {exam.status === 'Published' ? '公開済み' : exam.status === 'Draft' ? '下書き' : 'アーカイブ済み'}
+                  {exam.status === 'Published' ? '公開' : exam.status === 'Draft' ? '下書き' : 'アーカイブ済み'}
                 </Badge>
               </TableCell>
               <TableCell>
