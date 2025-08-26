@@ -157,9 +157,10 @@ function CreateExamPageContent() {
       }
       
       const totalPoints = questions.reduce((acc, q) => {
-        const mainPoints = q.points || 0;
-        const subPoints = q.subQuestions?.reduce((subAcc, subQ) => subAcc + (subQ.points || 0), 0) || 0;
-        return acc + mainPoints + subPoints;
+        if (q.subQuestions && q.subQuestions.length > 0) {
+            return acc + (q.subQuestions.reduce((subAcc, subQ) => subAcc + (subQ.points || 0), 0) || 0);
+        }
+        return acc + (q.points || 0);
     }, 0);
       
       const examData: Partial<Exam> = {
