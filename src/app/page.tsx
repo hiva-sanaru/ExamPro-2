@@ -90,7 +90,13 @@ function ExamineeDashboard() {
     const availableExams = exams.filter(e => e.status === 'Published' && !submissions.some(s => s.examId === e.id));
     
     const examsAwaitingLessonReview = submissions
-        .filter(s => s.finalOutcome === 'Passed' && exams.find(e => e.id === s.examId)?.type === 'WrittenAndInterview' && !s.lessonReviewUrl);
+        .filter(s => {
+            const exam = exams.find(e => e.id === s.examId);
+            return s.finalOutcome === 'Passed' && 
+                   exam?.type === 'WrittenAndInterview' && 
+                   exam?.lessonReviewType === 'UrlSubmission' && 
+                   !s.lessonReviewUrl;
+        });
 
 
     return (

@@ -10,10 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Wand2, User, Check, Loader2, Building, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Bot, Wand2, User, Check, Loader2, Building, ThumbsUp, ThumbsDown, Calendar, Clock } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { updateSubmission } from "@/services/submissionService";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ja } from 'date-fns/locale';
 import { useRouter } from "next/navigation";
 
 
@@ -47,12 +52,17 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
   const [finalScore, setFinalScore] = useState<number | undefined>(submission.finalScore);
   const [finalOutcome, setFinalOutcome] = useState<'Passed' | 'Failed' | undefined>(submission.finalOutcome);
 
+  // State for lesson review date/time submission
+  const [date1, setDate1] = useState<Date | undefined>(submission.lessonReviewDate1?.toDate());
+  const [time1, setTime1] = useState(submission.lessonReviewDate1 ? format(submission.lessonReviewDate1.toDate(), 'HH:mm') : '09:00');
+  const [date2, setDate2] = useState<Date | undefined>(submission.lessonReviewDate2?.toDate());
+  const [time2, setTime2] = useState(submission.lessonReviewDate2 ? format(submission.lessonReviewDate2.toDate(), 'HH:mm') : '10:00');
+
   const totalScore = useMemo(() => {
     return Object.values(manualScores).reduce((acc, score) => acc + (score || 0), 0);
   }, [manualScores]);
   
   useEffect(() => {
-    // Set initial outcome based on score if it's not already set
     if (finalOutcome === undefined && isPersonnelOfficeView) {
       const threshold = 80;
       const score = finalScore ?? totalScore;
@@ -61,7 +71,6 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
   }, [totalScore, finalScore, finalOutcome, isPersonnelOfficeView]);
 
   useEffect(() => {
-    // Initialize scores and feedback based on role and existing data
     if (reviewerRole === "人事室" && submission.hqGrade) {
         setManualScores(submission.poGrade?.scores || submission.hqGrade.scores || {});
         setOverallFeedback(submission.poGrade?.justification || '');
@@ -168,7 +177,27 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         dataToUpdate.finalOutcome = finalOutcome;
 
         if (finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
-            newStatus = '合格'; // Status becomes 'Passed', but they need to submit URL
+            if (exam.lessonReviewType === 'DateSubmission') {
+                if (!date1 || !time1) {
+                    toast({ title: "入力エラー", description: "授業審査の第一希望日時を入力してください。", variant: "destructive"});
+                    setIsSubmitting(false);
+                    return;
+                }
+                const [h1, m1] = time1.split(':').map(Number);
+                const lessonReviewDate1 = new Date(date1);
+                lessonReviewDate1.setHours(h1, m1);
+                dataToUpdate.lessonReviewDate1 = lessonReviewDate1;
+                
+                if (date2 && time2) {
+                    const [h2, m2] = time2.split(':').map(Number);
+                    const lessonReviewDate2 = new Date(date2);
+                    lessonReviewDate2.setHours(h2, m2);
+                    dataToUpdate.lessonReviewDate2 = lessonReviewDate2;
+                }
+                newStatus = '授業審査待ち';
+            } else { // UrlSubmission
+                newStatus = '合格'; // Status becomes 'Passed', but they need to submit URL
+            }
         } else if (finalOutcome === 'Passed') {
             newStatus = '合格';
         } else {
@@ -329,8 +358,53 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                  <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
                     <CardHeader>
                          <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>
-                         <CardDescription>この受験者は筆記試験に合格しました。受験者はマイページから授業動画のURLを提出します。このまま最終承認してください。</CardDescription>
+                         <CardDescription>この受験者は筆記試験に合格しました。次のステップに進んでください。</CardDescription>
                     </CardHeader>
+                    <CardContent>
+                        {exam.lessonReviewType === 'UrlSubmission' ? (
+                            <p>この試験は「YouTube URL提出」形式です。このまま承認すると、受験者のマイページにURL提出フォームが表示されます。</p>
+                        ) : (
+                            <div className="space-y-4">
+                                <p>この試験は「希望日時提出」形式です。授業審査の希望日時を入力してください。</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="date1">第一希望日時</Label>
+                                        <div className="flex gap-2">
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal", !date1 && "text-muted-foreground")}>
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {date1 ? format(date1, "PPP", { locale: ja }) : <span>日付を選択</span>}
+                                                </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0">
+                                                    <CalendarComponent mode="single" selected={date1} onSelect={setDate1} initialFocus />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <Input type="time" value={time1} onChange={e => setTime1(e.target.value)} className="w-28" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="date2">第二希望日時</Label>
+                                        <div className="flex gap-2">
+                                             <Popover>
+                                                <PopoverTrigger asChild>
+                                                <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal", !date2 && "text-muted-foreground")}>
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {date2 ? format(date2, "PPP", { locale: ja }) : <span>日付を選択</span>}
+                                                </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0">
+                                                    <CalendarComponent mode="single" selected={date2} onSelect={setDate2} />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <Input type="time" value={time2} onChange={e => setTime2(e.target.value)} className="w-28"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
                 </Card>
             )}
 

@@ -27,6 +27,7 @@ function CreateExamPageContent() {
   const [duration, setDuration] = useState(60);
   const [status, setStatus] = useState<Exam['status']>('Draft');
   const [examType, setExamType] = useState<Exam['type']>('WrittenOnly');
+  const [lessonReviewType, setLessonReviewType] = useState<Exam['lessonReviewType']>('DateSubmission');
   const [questions, setQuestions] = useState<Partial<Question>[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isTempSaving, setIsTempSaving] = useState(false);
@@ -46,6 +47,7 @@ function CreateExamPageContent() {
             setDuration(examData.duration);
             setStatus(examData.status);
             setExamType(examData.type || 'WrittenOnly');
+            setLessonReviewType(examData.lessonReviewType || 'DateSubmission');
             // Ensure questions have unique IDs for the form key
             const questionsWithIds = examData.questions.map(q => ({...q, id: q.id || uuidv4()}));
             setQuestions(questionsWithIds);
@@ -170,6 +172,7 @@ function CreateExamPageContent() {
         totalPoints,
         status,
         type: examType,
+        lessonReviewType: examType === 'WrittenAndInterview' ? lessonReviewType : undefined,
       };
 
       try {
@@ -281,7 +284,7 @@ function CreateExamPageContent() {
                     <Label htmlFor="exam-title">試験タイトル</Label>
                     <Input id="exam-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例: 2024年下期 昇進試験" className="bg-white dark:bg-gray-950" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="space-y-2">
                         <Label htmlFor="exam-type">試験タイプ</Label>
                         <Select value={examType} onValueChange={(value: Exam['type']) => setExamType(value)}>
@@ -294,33 +297,46 @@ function CreateExamPageContent() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex items-center gap-4 col-span-1 md:col-span-2">
-                        <div className="space-y-2 flex-1">
-                            <Label htmlFor="exam-status">試験ステータス</Label>
-                            <Select value={status} onValueChange={(value: Exam['status']) => setStatus(value)}>
-                                <SelectTrigger id="exam-status" className="w-full bg-white dark:bg-gray-950">
-                                    <SelectValue placeholder="ステータスを選択" />
+                    {examType === 'WrittenAndInterview' && (
+                        <div className="space-y-2">
+                           <Label htmlFor="lesson-review-type">授業審査の提出方法</Label>
+                            <Select value={lessonReviewType} onValueChange={(value: Exam['lessonReviewType']) => setLessonReviewType(value)}>
+                                <SelectTrigger id="lesson-review-type" className="w-full bg-white dark:bg-gray-950">
+                                    <SelectValue placeholder="提出方法を選択" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Draft">下書き</SelectItem>
-                                    <SelectItem value="Published">公開</SelectItem>
-                                    <SelectItem value="Archived">アーカイブ済み</SelectItem>
+                                    <SelectItem value="DateSubmission">希望日時提出</SelectItem>
+                                    <SelectItem value="UrlSubmission">YouTube URL提出</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2 flex-1">
-                            <Label htmlFor="exam-duration">試験時間（分）</Label>
-                            <div className="flex items-center gap-2">
-                                <Input id="exam-duration" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full bg-white dark:bg-gray-950" />
-                                <Button variant="outline" onClick={handleSuggestTimeLimits} disabled={isSuggestingTime}>
-                                  {isSuggestingTime ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                                  AIで配分
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
-                <p className="text-xs text-muted-foreground">「筆記＋授業審査」を選ぶと、合格後に授業審査ステップに進みます。</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="exam-status">試験ステータス</Label>
+                      <Select value={status} onValueChange={(value: Exam['status']) => setStatus(value)}>
+                          <SelectTrigger id="exam-status" className="w-full bg-white dark:bg-gray-950">
+                              <SelectValue placeholder="ステータスを選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="Draft">下書き</SelectItem>
+                              <SelectItem value="Published">公開</SelectItem>
+                              <SelectItem value="Archived">アーカイブ済み</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="exam-duration">試験時間（分）</Label>
+                      <div className="flex items-center gap-2">
+                          <Input id="exam-duration" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full bg-white dark:bg-gray-950" />
+                          <Button variant="outline" onClick={handleSuggestTimeLimits} disabled={isSuggestingTime}>
+                            {isSuggestingTime ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                            AIで配分
+                          </Button>
+                      </div>
+                  </div>
+                </div>
             </CardContent>
         </Card>
 

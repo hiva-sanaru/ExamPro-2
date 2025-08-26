@@ -52,6 +52,8 @@ export interface Submission {
   finalScore?: number;
   finalOutcome?: 'Passed' | 'Failed';
   lessonReviewUrl?: string;
+  lessonReviewDate1?: any; // Firestore Timestamp
+  lessonReviewDate2?: any; // Firestore Timestamp
   resultCommunicated?: boolean;
 }
 
@@ -63,6 +65,7 @@ export interface Exam {
   status: 'Draft' | 'Published' | 'Archived';
   questions: Question[];
   type: 'WrittenOnly' | 'WrittenAndInterview' | 'Standard' | 'Promotion'; // Standard and Promotion are for backwards compatibility
+  lessonReviewType?: 'DateSubmission' | 'UrlSubmission';
 }
 
 

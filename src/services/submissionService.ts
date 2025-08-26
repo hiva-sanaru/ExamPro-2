@@ -42,11 +42,18 @@ export async function addSubmission(submissionData: Omit<Submission, 'id' | 'sub
 }
 
 
-export async function updateSubmission(submissionId: string, submissionData: Partial<Submission>): Promise<void> {
+export async function updateSubmission(submissionId: string, submissionData: Partial<Omit<Submission, 'id'>>): Promise<void> {
     const docRef = doc(db, 'submissions', submissionId);
     
     // Convert Date objects to Firestore Timestamps before updating
     const dataToUpdate: { [key: string]: any } = { ...submissionData };
+
+    if (submissionData.lessonReviewDate1 instanceof Date) {
+        dataToUpdate.lessonReviewDate1 = Timestamp.fromDate(submissionData.lessonReviewDate1);
+    }
+     if (submissionData.lessonReviewDate2 instanceof Date) {
+        dataToUpdate.lessonReviewDate2 = Timestamp.fromDate(submissionData.lessonReviewDate2);
+    }
     
     await updateDoc(docRef, dataToUpdate);
 }
