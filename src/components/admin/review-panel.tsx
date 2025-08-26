@@ -60,6 +60,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
 
   const [finalScore, setFinalScore] = useState<number | undefined>(submission.finalScore);
 
+  const isPersonnelOfficeView = reviewerRole === "人事室";
 
   const totalScore = useMemo(() => {
     return Object.values(manualScores).reduce((acc, score) => acc + (score || 0), 0);
@@ -218,8 +219,6 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
           : setMinutes(date, parseInt(value));
       setDate(newDate);
   }
-
-  const isPersonnelOfficeView = reviewerRole === "人事室";
 
   return (
     <Card>
