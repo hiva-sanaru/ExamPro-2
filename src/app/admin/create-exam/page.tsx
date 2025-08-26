@@ -104,7 +104,7 @@ function CreateExamPageContent() {
     const newQuestions = [...questions];
     const question = newQuestions[index] as Question;
 
-    if (field === 'modelAnswer' && (question.type === 'fill-in-the-blank' || question.type === 'descriptive') && typeof value === 'object' && value.index !== undefined) {
+    if (field === 'modelAnswer' && (question.type === 'fill-in-the-blank' || (question.type === 'descriptive' && (question.numberOfAnswers || 1) > 1)) && typeof value === 'object' && value.index !== undefined) {
         const answers = Array.isArray(question.modelAnswer) ? [...question.modelAnswer] : [];
         answers[value.index] = value.value;
         question.modelAnswer = answers;
@@ -289,25 +289,25 @@ function CreateExamPageContent() {
                                    <div className="flex-grow space-y-4 pr-4">
                                         <div className="space-y-4 p-4 border rounded-lg bg-yellow-100 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
                                             <div className="flex flex-wrap gap-4">
+                                                <div className="flex-1 min-w-[150px] space-y-2">
+                                                    <Label htmlFor={`q-type-${index}`}>問題タイプ</Label>
+                                                    <Select value={q.type} onValueChange={(value) => handleQuestionChange(index, 'type', value)}>
+                                                            <SelectTrigger id={`q-type-${index}`}>
+                                                                <SelectValue placeholder="タイプを選択" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="descriptive">記述式</SelectItem>
+                                                                <SelectItem value="fill-in-the-blank">穴埋め</SelectItem>
+                                                                <SelectItem value="selection">選択式</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                </div>
                                                 {q.type === 'descriptive' && (
                                                     <div className="flex-1 min-w-[120px] space-y-2">
                                                         <Label htmlFor={`q-num-answers-${index}`}>解答欄の数</Label>
                                                         <Input id={`q-num-answers-${index}`} type="number" min={1} value={q.numberOfAnswers || 1} onChange={(e) => handleQuestionChange(index, 'numberOfAnswers', Number(e.target.value))} />
                                                     </div>
                                                 )}
-                                                <div className="flex-1 min-w-[150px] space-y-2">
-                                                <Label htmlFor={`q-type-${index}`}>問題タイプ</Label>
-                                                <Select value={q.type} onValueChange={(value) => handleQuestionChange(index, 'type', value)}>
-                                                        <SelectTrigger id={`q-type-${index}`}>
-                                                            <SelectValue placeholder="タイプを選択" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="descriptive">記述式</SelectItem>
-                                                            <SelectItem value="fill-in-the-blank">穴埋め</SelectItem>
-                                                            <SelectItem value="selection">選択式</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
                                                 <div className="flex-1 min-w-[120px] space-y-2">
                                                     <Label htmlFor={`q-points-${index}`}>配点</Label>
                                                     <Input id={`q-points-${index}`} type="number" value={q.points} onChange={(e) => handleQuestionChange(index, 'points', Number(e.target.value))} placeholder="例: 10" />
