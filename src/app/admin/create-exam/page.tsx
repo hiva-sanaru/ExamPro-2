@@ -218,7 +218,7 @@ function CreateExamPageContent() {
                     <Label htmlFor="exam-title">試験タイトル</Label>
                     <Input id="exam-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例: 2024年下期 昇進試験" className="bg-white dark:bg-gray-950" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:items-end">
                      <div className="space-y-2">
                         <Label htmlFor="exam-type">試験タイプ</Label>
                         <Select value={examType} onValueChange={(value: Exam['type']) => setExamType(value)}>
@@ -230,13 +230,12 @@ function CreateExamPageContent() {
                                 <SelectItem value="WrittenAndInterview">筆記＋授業審査</SelectItem>
                             </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">「筆記＋授業審査」を選ぶと、合格後に授業審査ステップに進みます。</p>
                     </div>
-                     <div className="flex items-center gap-4">
-                        <div className="space-y-2">
+                    <div className="flex items-center gap-4 col-span-1 md:col-span-2">
+                        <div className="space-y-2 flex-1">
                             <Label htmlFor="exam-status">試験ステータス</Label>
                             <Select value={status} onValueChange={(value: Exam['status']) => setStatus(value)}>
-                                <SelectTrigger id="exam-status" className="w-[200px] bg-white dark:bg-gray-950">
+                                <SelectTrigger id="exam-status" className="w-full bg-white dark:bg-gray-950">
                                     <SelectValue placeholder="ステータスを選択" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -246,12 +245,13 @@ function CreateExamPageContent() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 flex-1">
                             <Label htmlFor="exam-duration">試験時間（分）</Label>
-                            <Input id="exam-duration" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="bg-white dark:bg-gray-950" />
+                            <Input id="exam-duration" type="number" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full bg-white dark:bg-gray-950" />
                         </div>
                     </div>
                 </div>
+                <p className="text-xs text-muted-foreground">「筆記＋授業審査」を選ぶと、合格後に授業審査ステップに進みます。</p>
             </CardContent>
         </Card>
 
