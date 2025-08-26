@@ -41,14 +41,18 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    const menuItems = [
-        { href: "/admin/dashboard", label: "試験管理", icon: LayoutDashboard },
-        { href: "/admin/review", label: "提出物", icon: FileCheck2 },
-        { href: "/admin/users", label: "ユーザー", icon: Users },
-        { href: "/admin/headquarters", label: "本部管理", icon: Building },
-        { href: "/admin/change-password", label: "パスワード変更", icon: KeyRound },
-        { href: "/admin/manual", label: "マニュアル", icon: BookOpen },
-    ]
+    const allMenuItems = [
+        { href: "/admin/dashboard", label: "試験管理", icon: LayoutDashboard, roles: ['system_administrator'] },
+        { href: "/admin/review", label: "提出物", icon: FileCheck2, roles: ['system_administrator', 'hq_administrator'] },
+        { href: "/admin/users", label: "ユーザー", icon: Users, roles: ['system_administrator'] },
+        { href: "/admin/headquarters", label: "本部管理", icon: Building, roles: ['system_administrator'] },
+        { href: "/admin/change-password", label: "パスワード変更", icon: KeyRound, roles: ['system_administrator', 'hq_administrator'] },
+        { href: "/admin/manual", label: "マニュアル", icon: BookOpen, roles: ['system_administrator', 'hq_administrator'] },
+    ];
+
+    const visibleMenuItems = currentUser 
+        ? allMenuItems.filter(item => item.roles.includes(currentUser.role))
+        : [];
 
     return (
         <SidebarProvider>
@@ -60,7 +64,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 </SidebarHeader>
                 <SidebarContent>
                     <SidebarMenu>
-                        {menuItems.map((item) => (
+                        {visibleMenuItems.map((item) => (
                              <SidebarMenuItem key={item.href}>
                                 <Link href={item.href}>
                                     <SidebarMenuButton isActive={pathname.startsWith(item.href)} tooltip={item.label}>
