@@ -178,8 +178,8 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
             <TableHead className="text-primary-foreground whitespace-nowrap">受験者名</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap">本部</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap">提出日時</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">ステータス</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">結果伝達</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">ステータス</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">結果伝達</TableHead>
             <TableHead className="text-right text-primary-foreground whitespace-nowrap">アクション</TableHead>
           </TableRow>
         </TableHeader>
@@ -207,7 +207,7 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
                         <TableCell className="whitespace-nowrap">{examinee?.name || '－'}</TableCell>
                         <TableCell className="whitespace-nowrap">{submission.examineeHeadquarters?.replace('本部', '') || '－'}</TableCell>
                         <TableCell className="whitespace-nowrap">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd", { locale: ja })}</TableCell>
-                        <TableCell className="whitespace-nowrap">
+                        <TableCell className="text-center whitespace-nowrap">
                             <Badge variant="outline" className={badgeVariants({ status: statusName as any })}>
                                 {statusName}
                             </Badge>
@@ -265,5 +265,3 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
     </div>
   );
 }
-
-    
