@@ -22,7 +22,7 @@ export async function getExam(id: string): Promise<Exam | null> {
         if (!examData.questions) {
             examData.questions = [];
         }
-        return { id: docSnap.id, ...examData } as Exam;
+        return { id: docSnap.id, type: 'Standard', ...examData } as Exam;
     }
     return null;
 }

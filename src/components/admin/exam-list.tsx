@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Eye, Loader2, Tag } from "lucide-react";
 import { cva } from "class-variance-authority";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -93,6 +93,7 @@ export function ExamList({ isAdmin }: ExamListProps) {
           <TableRow className="bg-primary hover:bg-primary/90">
             <TableHead className="text-primary-foreground whitespace-nowrap">タイトル</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap">ステータス</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap">タイプ</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap">問題数</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap">合計点</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap">時間</TableHead>
@@ -107,6 +108,11 @@ export function ExamList({ isAdmin }: ExamListProps) {
                 <Badge variant="outline" className={badgeVariants({ status: exam.status })}>
                   {exam.status === 'Published' ? '公開済み' : exam.status === 'Draft' ? '下書き' : 'アーカイブ済み'}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                 <Badge variant={exam.type === 'Promotion' ? "destructive" : "secondary"}>
+                    {exam.type === 'Promotion' ? '昇進' : '標準'}
+                 </Badge>
               </TableCell>
               <TableCell>{exam.questions.length}</TableCell>
               <TableCell>{exam.totalPoints}</TableCell>

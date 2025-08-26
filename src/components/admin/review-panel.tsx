@@ -65,9 +65,14 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     return Object.values(manualScores).reduce((acc, score) => acc + (score || 0), 0);
   }, [manualScores]);
   
-  const [finalOutcome, setFinalOutcome] = useState<'Passed' | 'Failed'>(
-    submission.finalOutcome || (totalScore >= 80 ? 'Passed' : 'Failed')
-  );
+  const [finalOutcome, setFinalOutcome] = useState<'Passed' | 'Failed' | undefined>(submission.finalOutcome);
+
+  useEffect(() => {
+    // Set initial outcome based on score if it's not already set
+    if (finalOutcome === undefined) {
+      setFinalOutcome(totalScore >= 80 ? 'Passed' : 'Failed');
+    }
+  }, [totalScore, finalOutcome]);
 
   useEffect(() => {
     // Initialize scores and feedback based on role and existing data
@@ -169,7 +174,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         newStatus = "Completed";
     }
     
-    if (finalOutcome === 'Passed') {
+    if (finalOutcome === 'Passed' && exam.type === 'Promotion') {
         dataToUpdate.lessonReviewDate1 = lessonReviewDate1;
         dataToUpdate.lessonReviewEndDate1 = lessonReviewEndDate1;
         dataToUpdate.lessonReviewDate2 = lessonReviewDate2;
@@ -339,11 +344,11 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
               </div>
             )}
 
-            {finalOutcome === 'Passed' && (
+            {finalOutcome === 'Passed' && exam.type === 'Promotion' && (
                  <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
                     <CardHeader>
                          <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>
-                         <CardDescription>合計スコアが80点以上です。授業審査の希望日時と時間を選択してください。</CardDescription>
+                         <CardDescription>この試験は昇進試験です。授業審査の希望日時と時間を選択してください。</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {/* --- First Choice --- */}

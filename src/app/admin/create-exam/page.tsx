@@ -25,6 +25,7 @@ function CreateExamPageContent() {
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState(60);
   const [status, setStatus] = useState<Exam['status']>('Draft');
+  const [examType, setExamType] = useState<Exam['type']>('Standard');
   const [questions, setQuestions] = useState<Partial<Question>[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +41,7 @@ function CreateExamPageContent() {
             setTitle(examData.title);
             setDuration(examData.duration);
             setStatus(examData.status);
+            setExamType(examData.type || 'Standard');
             // Ensure questions have unique IDs for the form key
             const questionsWithIds = examData.questions.map(q => ({...q, id: q.id || uuidv4()}));
             setQuestions(questionsWithIds);
@@ -152,6 +154,7 @@ function CreateExamPageContent() {
         questions: questions as Question[],
         totalPoints,
         status,
+        type: examType,
       };
 
       try {
@@ -216,6 +219,19 @@ function CreateExamPageContent() {
                     <Input id="exam-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例: 2024年下期 昇進試験" className="bg-white dark:bg-gray-950" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="exam-type">試験タイプ</Label>
+                        <Select value={examType} onValueChange={(value: Exam['type']) => setExamType(value)}>
+                            <SelectTrigger id="exam-type" className="w-[200px] bg-white dark:bg-gray-950">
+                                <SelectValue placeholder="タイプを選択" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Standard">標準</SelectItem>
+                                <SelectItem value="Promotion">昇進</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">「昇進」を選ぶと、合格後に授業審査ステップに進みます。</p>
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="exam-status">試験ステータス</Label>
                         <Select value={status} onValueChange={(value: Exam['status']) => setStatus(value)}>
@@ -228,7 +244,6 @@ function CreateExamPageContent() {
                                 <SelectItem value="Archived">アーカイブ済み</SelectItem>
                             </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">「公開済み」に設定すると、受験者が試験を受けられるようになります。</p>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="exam-duration">試験時間（分）</Label>

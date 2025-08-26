@@ -56,6 +56,17 @@ export interface Submission {
   resultCommunicated?: boolean;
 }
 
+export interface Exam {
+  id: string;
+  title: string;
+  duration: number; // in minutes
+  totalPoints: number;
+  status: 'Draft' | 'Published' | 'Archived';
+  questions: Question[];
+  type: 'Standard' | 'Promotion';
+}
+
+
 export interface Headquarters {
   code: string;
   name: string;
