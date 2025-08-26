@@ -152,14 +152,17 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
     )
 
     const getStatusName = (submission: Submission) => {
-        if (submission.finalOutcome === 'Passed') return '合格';
-        if (submission.finalOutcome === 'Failed') return '不合格';
+        // Final outcome takes precedence
+        if (submission.status === '合格' || submission.finalOutcome === 'Passed') return '合格';
+        if (submission.status === '不合格' || submission.finalOutcome === 'Failed') return '不合格';
+
         switch(submission.status) {
-            case '本部採点中': return '本部採点中';
             case '人事確認中': return '人事確認中';
-            case 'Grading': return '本部採点中'; // Legacy support
-            case 'Completed': return '人事確認中'; // Legacy support
             case 'Submitted': return '提出済み';
+            // Legacy statuses
+            case '本部採点中': return '人事確認中'; 
+            case 'Grading': return '人事確認中'; 
+            case 'Completed': return '人事確認中';
             default: return '不明';
         }
     }
@@ -260,3 +263,5 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
     </div>
   );
 }
+
+    

@@ -45,7 +45,7 @@ export interface Submission {
   examineeHeadquarters?: string;
   submittedAt: any; // Firestore Timestamp
   answers: Answer[];
-  status: 'In Progress' | 'Submitted' | 'Grading' | 'Completed' | '本部採点中' | '人事確認中';
+  status: 'In Progress' | 'Submitted' | 'Grading' | 'Completed' | '本部採点中' | '人事確認中' | '合格' | '不合格';
   hqGrade?: Grade;
   poGrade?: Grade;
   finalScore?: number;
@@ -72,3 +72,5 @@ export interface Headquarters {
   code: string;
   name: string;
 }
+
+    

@@ -69,23 +69,25 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
 
   useEffect(() => {
     // Set initial outcome based on score if it's not already set
-    if (finalOutcome === undefined) {
-      setFinalOutcome(totalScore >= 80 ? 'Passed' : 'Failed');
+    if (finalOutcome === undefined && isPersonnelOfficeView) {
+      const threshold = 80;
+      const score = finalScore ?? totalScore;
+      setFinalOutcome(score >= threshold ? 'Passed' : 'Failed');
     }
-  }, [totalScore, finalOutcome]);
+  }, [totalScore, finalScore, finalOutcome, isPersonnelOfficeView]);
 
   useEffect(() => {
     // Initialize scores and feedback based on role and existing data
     if (reviewerRole === "人事室" && submission.hqGrade) {
         setManualScores(submission.poGrade?.scores || submission.hqGrade.scores || {});
         setOverallFeedback(submission.poGrade?.justification || '');
-        setFinalScore(submission.finalScore);
-        setFinalOutcome(submission.finalOutcome || (totalScore >= 80 ? 'Passed' : 'Failed'))
+        setFinalScore(submission.finalScore ?? submission.hqGrade.score);
+        setFinalOutcome(submission.finalOutcome)
     } else {
         setManualScores(submission.hqGrade?.scores || {});
         setOverallFeedback(submission.hqGrade?.justification || '');
     }
-  }, [submission, reviewerRole, totalScore]);
+  }, [submission, reviewerRole]);
 
 
   const handleManualScoreChange = (questionId: string, score: string) => {
@@ -170,7 +172,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             reviewer: mockReviewerName,
             scores: manualScores
         };
-        newStatus = "本部採点中";
+        newStatus = "人事確認中";
     } else { // Personnel Office
         dataToUpdate.poGrade = {
             score: totalScore,
@@ -180,7 +182,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         };
         dataToUpdate.finalScore = totalScore;
         dataToUpdate.finalOutcome = finalOutcome;
-        newStatus = "人事確認中";
+        newStatus = finalOutcome === 'Passed' ? '合格' : '不合格';
     }
     
     if (finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
@@ -484,3 +486,5 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     </Card>
   );
 }
+
+    
