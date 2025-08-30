@@ -159,31 +159,50 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
 
     const results = await Promise.all(gradingPromises);
     
-    const newGradingResults: GradingResult[] = [];
     const newManualScores: ManualScores = { ...manualScores };
-    const newAiJustifications: AiJustifications = {};
+    const newAiJustifications: AiJustifications = { ...aiJustifications };
+    let hasNewGrading = false;
     
     results.forEach(result => {
         if ('error' in result) {
-            // Do not log error to console, just skip this question.
+            // Do not log error, just skip this question.
         } else {
-            newGradingResults.push({
-                questionId: result.questionId,
-                score: result.score,
-                justification: result.justification,
-                isLoading: false,
-            });
+            hasNewGrading = true;
             newManualScores[result.questionId] = result.score;
             newAiJustifications[result.questionId] = result.justification;
         }
     });
     
-    setGradingResults(newGradingResults);
     setManualScores(newManualScores);
     setAiJustifications(newAiJustifications);
 
+    if (hasNewGrading) {
+        try {
+            const questionGrades: { [key: string]: QuestionGrade } = {};
+            for (const qId in newManualScores) {
+                questionGrades[qId] = {
+                    score: newManualScores[qId],
+                    justification: newAiJustifications[qId] || undefined
+                };
+            }
+            const newHqGrade = {
+                score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
+                justification: overallFeedback,
+                reviewer: 'AI Draft',
+                questionGrades: questionGrades
+            };
+            await updateSubmission(submission.id, { hqGrade: newHqGrade });
+            toast({ title: "AI採点結果を下書き保存しました！", description: "各問題のスコアと評価を確認してください。" });
+
+        } catch (error) {
+            console.error("Failed to save AI grading draft:", error);
+            toast({ title: "下書き保存エラー", description: "AI採点結果の保存中にエラーが発生しました。", variant: "destructive" });
+        }
+    } else {
+        toast({ title: "AI一括採点が完了しました", description: "採点対象となる新しい回答はありませんでした。" });
+    }
+
     setIsBulkGrading(false);
-    toast({ title: "AI一括採点が完了しました！", description: "各問題のスコアと評価を確認してください。" });
   }
 
   const handleSubmitReview = async () => {
@@ -261,6 +280,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         await updateSubmission(submission.id, dataToUpdate);
         toast({ title: `${reviewerRole}のレビューが正常に送信されました！` });
         router.push('/admin/review');
+        router.refresh();
     } catch(error) {
         console.error("Failed to submit review:", error);
         toast({ title: "送信エラー", description: "レビューの送信中にエラーが発生しました。", variant: "destructive" });
@@ -270,7 +290,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
   }
 
   const showLessonReviewForm = reviewerRole === '本部' && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
-
+  const hasAiGradingData = Object.keys(aiJustifications).length > 0;
 
   return (
     <Card>
@@ -288,7 +308,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             {!isPersonnelOfficeView && (
                 <Button onClick={handleGradeAllQuestions} disabled={isBulkGrading}>
                     {isBulkGrading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                    {isBulkGrading ? "採点中..." : "AIで一括採点"}
+                    {isBulkGrading ? "採点中..." : (hasAiGradingData ? "AIで再採点" : "AIで一括採点")}
                 </Button>
             )}
         </div>
@@ -327,23 +347,20 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
         )}
 
         {exam.questions.map((question, index) => {
-          const result = gradingResults.find((r) => r.questionId === question.id);
           const answerValue = getAnswerForQuestion(question.id!);
           const answerDisplay = Array.isArray(answerValue) ? answerValue.map((a, i) => `(${i+1}) ${a}`).join('\n') : answerValue.toString();
           const modelAnswerDisplay = Array.isArray(question.modelAnswer) ? question.modelAnswer.map((a, i) => `(${i + 1}) ${a}`).join('\n') : question.modelAnswer;
 
-          const justification = isPersonnelOfficeView ? (aiJustifications[question.id!] || submission.hqGrade?.questionGrades?.[question.id!]?.justification) : (result?.justification || aiJustifications[question.id!]);
+          const justification = aiJustifications[question.id!];
 
           return (
             <Card key={question.id} className="overflow-hidden">
                 <CardHeader className="bg-primary/5 p-4 border-b">
                     <div className="flex justify-between w-full items-center">
-                        <div className="text-base font-normal text-left text-primary-foreground">
-                            <CardTitle className="text-base font-normal text-foreground">問題 {index + 1}: {question.text}</CardTitle>
-                        </div>
+                        <CardTitle className="text-base font-normal text-foreground">問題 {index + 1}: {question.text}</CardTitle>
                         <div className="flex items-center gap-2">
-                             {result && !result.isLoading && <Badge variant="secondary">AI採点済み</Badge>}
-                             {isBulkGrading && !result && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                            {justification && <Badge variant="secondary">AI採点済み</Badge>}
+                            {isBulkGrading && !justification && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                         </div>
                     </div>
                 </CardHeader>
@@ -363,7 +380,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                         <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
                         {justification ? (
                             <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
-                                <p><strong>スコア:</strong> {manualScores[question.id!] || submission.hqGrade?.questionGrades?.[question.id!]?.score || 0}/{question.points}</p>
+                                <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
                                 <p><strong>根拠:</strong> {justification}</p>
                             </div>
                         ) : (

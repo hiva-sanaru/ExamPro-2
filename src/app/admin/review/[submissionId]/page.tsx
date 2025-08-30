@@ -9,7 +9,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState, useEffect } from "react";
-import { getSubmission } from "@/services/submissionService";
+import { getSubmission, updateSubmission } from "@/services/submissionService";
 import { getExam } from "@/services/examService";
 import { findUserByEmployeeId } from "@/services/userService";
 import type { Submission, Exam, User } from "@/lib/types";
@@ -87,7 +87,7 @@ export default function AdminReviewPage() {
                     <AlertTitle>読み込みエラー</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
-                <Button onClick={() => router.back()}>戻る</Button>
+                <button onClick={() => router.back()}>戻る</button>
             </div>
         );
     }
