@@ -53,7 +53,6 @@ export default function ReviewListPage() {
             const exam = exams.find(e => e.id === submission.examId);
             const formatDate = (date: any) => {
                 if (!date) return "－";
-                // Firestore Timestamp might be converted already, or might not be.
                 const dateObj = date.toDate ? date.toDate() : new Date(date);
                 return formatInTimeZone(dateObj, 'Asia/Tokyo', "yyyy-MM-dd HH:mm", { locale: ja });
             }
@@ -75,7 +74,6 @@ export default function ReviewListPage() {
                 submission.lessonReviewClassroomName ?? "－",
             ].map(value => {
                 const str = String(value);
-                // Escape commas and quotes for CSV
                 if (str.includes(',')) {
                     return `"${str.replace(/"/g, '""')}"`;
                 }
