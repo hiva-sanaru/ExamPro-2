@@ -25,6 +25,7 @@ interface ReviewPanelProps {
   exam: Exam;
   submission: Submission;
   reviewerRole: "本部" | "人事室";
+  onSubmissionUpdate: () => void;
 }
 
 interface GradingResult {
@@ -42,7 +43,7 @@ interface AiJustifications {
     [questionId: string]: string;
 }
 
-export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps) {
+export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate }: ReviewPanelProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [gradingResults, setGradingResults] = useState<GradingResult[]>([]);
@@ -193,6 +194,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             };
             await updateSubmission(submission.id, { hqGrade: newHqGrade });
             toast({ title: "AI採点結果を下書き保存しました！", description: "各問題のスコアと評価を確認してください。" });
+            onSubmissionUpdate();
 
         } catch (error) {
             console.error("Failed to save AI grading draft:", error);
@@ -279,6 +281,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     try {
         await updateSubmission(submission.id, dataToUpdate);
         toast({ title: `${reviewerRole}のレビューが正常に送信されました！` });
+        onSubmissionUpdate();
         router.push('/admin/review');
         router.refresh();
     } catch(error) {
@@ -356,7 +359,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
           return (
             <Card key={question.id} className="overflow-hidden">
                 <CardHeader className="bg-primary/5 p-4 border-b">
-                    <div className="flex justify-between w-full items-center">
+                    <div className="flex justify-between w-full items-start">
                         <CardTitle className="text-base font-normal text-foreground">問題 {index + 1}: {question.text}</CardTitle>
                         <div className="flex items-center gap-2">
                             {justification && <Badge variant="secondary">AI採点済み</Badge>}

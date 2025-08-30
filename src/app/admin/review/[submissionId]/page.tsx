@@ -8,7 +8,7 @@ import { User as UserIcon, Calendar, CheckCircle, AlertTriangle, ShieldCheck, Lo
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getSubmission, updateSubmission } from "@/services/submissionService";
 import { getExam } from "@/services/examService";
 import { findUserByEmployeeId } from "@/services/userService";
@@ -25,6 +25,20 @@ export default function AdminReviewPage() {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const fetchSubmissionData = useCallback(async () => {
+        try {
+            const sub = await getSubmission(submissionId);
+             if (!sub) {
+                setError("Submission not found.");
+                return;
+            }
+            setSubmission(sub);
+        } catch (e) {
+            console.error(e);
+            setError("Failed to load submission data.");
+        }
+    }, [submissionId]);
 
     useEffect(() => {
         const fetchAllData = async () => {
@@ -66,6 +80,10 @@ export default function AdminReviewPage() {
 
         fetchAllData();
     }, [submissionId, router]);
+    
+    const handleSubmissionUpdate = () => {
+        fetchSubmissionData();
+    }
 
     if (isLoading) {
         return (
@@ -175,6 +193,7 @@ export default function AdminReviewPage() {
                         exam={exam}
                         submission={submission}
                         reviewerRole="本部"
+                        onSubmissionUpdate={handleSubmissionUpdate}
                     />
                 </TabsContent>
                 <TabsContent value="po">
@@ -182,6 +201,7 @@ export default function AdminReviewPage() {
                         exam={exam}
                         submission={submission}
                         reviewerRole="人事室"
+                        onSubmissionUpdate={handleSubmissionUpdate}
                     />
                 </TabsContent>
             </Tabs>
