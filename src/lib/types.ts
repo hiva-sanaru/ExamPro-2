@@ -42,7 +42,8 @@ export interface Grade {
 export interface Submission {
   id: string;
   examId: string;
-  examineeId: string;
+  examineeId: string; // employeeId for unregistered users
+  examineeName: string;
   examineeHeadquarters?: string;
   submittedAt: any; // Firestore Timestamp
   answers: Answer[];
@@ -72,4 +73,10 @@ export interface Exam {
 export interface Headquarters {
   code: string;
   name: string;
+}
+
+export interface ExamineeInfo {
+  employeeId: string;
+  name: string;
+  headquarters: string;
 }

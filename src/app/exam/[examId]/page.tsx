@@ -1,15 +1,50 @@
 
+'use client';
+
 import { ExamView } from "@/components/exam/exam-view";
 import { getExam } from "@/services/examService";
-import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { notFound, useParams, useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import type { Exam } from "@/lib/types";
 
-async function ExamPageContent({ examId }: { examId: string }) {
-  const exam = await getExam(examId);
+function ExamPageContent({ examId }: { examId: string }) {
+  const router = useRouter();
+  const [exam, setExam] = useState<Exam | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!exam) {
-    notFound();
+  useEffect(() => {
+    const examineeInfo = localStorage.getItem(`exam-examinee-info`);
+    if (!examineeInfo) {
+      router.replace(`/exam/${examId}/start`);
+      return;
+    }
+
+    const fetchExam = async () => {
+      try {
+        const examData = await getExam(examId);
+        if (!examData) {
+          notFound();
+        } else {
+          setExam(examData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch exam:", error);
+        notFound();
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchExam();
+  }, [examId, router]);
+
+
+  if (loading || !exam) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return <ExamView exam={exam} />;
@@ -18,10 +53,8 @@ async function ExamPageContent({ examId }: { examId: string }) {
 
 export default function ExamPage({ params }: { params: { examId: string } }) {
   return (
-    <div className="container mx-auto max-w-4xl py-8">
-       <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-        <ExamPageContent examId={params.examId} />
-      </Suspense>
-    </div>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <ExamPageContent examId={params.examId} />
+    </Suspense>
   );
 }

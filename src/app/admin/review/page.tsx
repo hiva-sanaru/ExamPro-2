@@ -5,25 +5,21 @@ import { SubmissionList } from "@/components/admin/submission-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getExams } from '@/services/examService';
-import { getUsers } from '@/services/userService';
 import { getSubmissions } from '@/services/submissionService';
-import type { User, Submission, Exam } from '@/lib/types';
+import type { Submission, Exam } from '@/lib/types';
 import { FileText } from "lucide-react";
 
 export default function ReviewListPage() {
-  const [users, setUsers] = useState<User[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
 
   useEffect(() => {
     async function fetchData() {
         try {
-            const [fetchedUsers, fetchedExams, fetchedSubmissions] = await Promise.all([
-                getUsers(),
+            const [fetchedExams, fetchedSubmissions] = await Promise.all([
                 getExams(),
                 getSubmissions()
             ]);
-            setUsers(fetchedUsers);
             setExams(fetchedExams);
             setSubmissions(fetchedSubmissions);
         } catch (error) {
@@ -38,6 +34,7 @@ export default function ReviewListPage() {
             "提出ID",
             "試験名",
             "受験者名",
+            "社員番号",
             "受験者本部",
             "提出日時",
             "ステータス",
@@ -49,11 +46,11 @@ export default function ReviewListPage() {
         
         const rows = submissions.map(submission => {
             const exam = exams.find(e => e.id === submission.examId);
-            const examinee = users.find(u => u.id === submission.examineeId);
             return [
                 submission.id,
                 exam?.title || "－",
-                examinee?.name || "－",
+                submission.examineeName || "－",
+                submission.examineeId || "－",
                 submission.examineeHeadquarters || "－",
                 submission.submittedAt.toISOString(),
                 submission.status,
@@ -94,7 +91,7 @@ export default function ReviewListPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <SubmissionList submissions={submissions} exams={exams} users={users} />
+          <SubmissionList submissions={submissions} exams={exams} />
         </CardContent>
       </Card>
     </div>

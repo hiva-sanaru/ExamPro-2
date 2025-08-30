@@ -46,7 +46,6 @@ export function LoginForm() {
     try {
         const user = await findUserByEmployeeId(data.employeeId);
 
-        // User not found OR user has a password and it doesn't match
         if (!user || (user.password && user.password !== data.password)) {
             toast({
                 title: "ログイン失敗",
@@ -57,13 +56,20 @@ export function LoginForm() {
             return;
         }
 
-        localStorage.setItem('loggedInUserEmployeeId', user.employeeId);
+        if (user.role === 'examinee') {
+            toast({
+                title: "ログインエラー",
+                description: "このアカウントは管理者用ではありません。トップページから試験を開始してください。",
+                variant: "destructive"
+            });
+            setIsLoading(false);
+            return;
+        }
 
+        localStorage.setItem('loggedInUserEmployeeId', user.employeeId);
 
         if (user.role === 'system_administrator' || user.role === 'hq_administrator') {
             router.push("/admin/dashboard");
-        } else if (user.role === 'examinee') {
-            router.push("/");
         } else {
             toast({
                 title: "ログイン失敗",
@@ -87,8 +93,8 @@ export function LoginForm() {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">サインイン</CardTitle>
-        <CardDescription>アカウントにアクセスするための情報を入力してください。</CardDescription>
+        <CardTitle className="font-headline text-2xl">管理者サインイン</CardTitle>
+        <CardDescription>管理者アカウントでアクセスするための情報を入力してください。</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>

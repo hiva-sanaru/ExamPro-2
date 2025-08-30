@@ -4,14 +4,14 @@ import { ReviewPanel } from "@/components/admin/review-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { notFound, useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User as UserIcon, Calendar, CheckCircle, AlertTriangle, ShieldCheck, Loader2, Building } from "lucide-react";
+import { User as UserIcon, Calendar, CheckCircle, AlertTriangle, ShieldCheck, Loader2, Building, Hash } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState, useEffect } from "react";
 import { getSubmission } from "@/services/submissionService";
 import { getExam } from "@/services/examService";
-import { findUserByEmployeeId, getUsers } from "@/services/userService";
+import { findUserByEmployeeId } from "@/services/userService";
 import type { Submission, Exam, User } from "@/lib/types";
 
 
@@ -23,7 +23,6 @@ export default function AdminReviewPage() {
     const [submission, setSubmission] = useState<Submission | null>(null);
     const [exam, setExam] = useState<Exam | null>(null);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [examinee, setExaminee] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -46,16 +45,11 @@ export default function AdminReviewPage() {
                     return;
                 }
                 
-                const allUsers = await getUsers();
-                const examineeUser = allUsers.find(u => u.id === sub.examineeId);
-                setExaminee(examineeUser || null);
-
                 const employeeId = localStorage.getItem('loggedInUserEmployeeId');
                 if (employeeId) {
                     const user = await findUserByEmployeeId(employeeId);
                     setCurrentUser(user);
                 } else {
-                    // Redirect to login if no user is logged in
                     router.push('/login');
                     return;
                 }
@@ -103,7 +97,6 @@ export default function AdminReviewPage() {
     }
     
 
-    // RBAC check:
     const hasAccess = currentUser.role === 'system_administrator' || 
                       (currentUser.role === 'hq_administrator' && currentUser.headquarters === submission.examineeHeadquarters);
 
@@ -118,8 +111,7 @@ export default function AdminReviewPage() {
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>権限エラー</AlertTitle>
                     <AlertDescription>
-                        あなたは <strong>{currentUser.headquarters}</strong> の本部管理者ですが、この提出物は <strong>{submission.examineeHeadquarters}</strong> のものです。
-                        システム管理者に連絡してアクセスをリクエストしてください。
+                        あなたはこの提出物を閲覧する権限がありません。
                     </AlertDescription>
                 </Alert>
             </div>
@@ -145,10 +137,14 @@ export default function AdminReviewPage() {
             )}
 
             <Card>
-                <CardContent className="grid md:grid-cols-3 gap-4 text-sm pt-6">
+                <CardContent className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm pt-6">
                     <div className="flex items-center gap-2">
                         <UserIcon className="w-4 h-4 text-muted-foreground" />
-                        <strong>受験者:</strong> <span>{examinee?.name || '不明なユーザー'}</span>
+                        <strong>受験者:</strong> <span>{submission.examineeName}</span>
+                    </div>
+                     <div className="flex items-center gap-2">
+                        <Hash className="w-4 h-4 text-muted-foreground" />
+                        <strong>社員番号:</strong> <span>{submission.examineeId}</span>
                     </div>
                      <div className="flex items-center gap-2">
                         <Building className="w-4 h-4 text-muted-foreground" />

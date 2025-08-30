@@ -3,14 +3,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Exam, Answer } from "@/lib/types";
+import type { Exam, Answer, ExamineeInfo } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { addSubmission } from "@/services/submissionService";
-import { findUserByEmployeeId } from "@/services/userService";
-import type { User } from "@/lib/types";
 
 interface ReviewViewProps {
   exam: Exam;
@@ -21,7 +19,7 @@ export function ReviewView({ exam }: ReviewViewProps) {
   const { toast } = useToast();
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [examineeInfo, setExamineeInfo] = useState<ExamineeInfo | null>(null);
 
   useEffect(() => {
     const savedAnswers = localStorage.getItem(`exam-${exam.id}-answers`);
@@ -29,11 +27,19 @@ export function ReviewView({ exam }: ReviewViewProps) {
       setAnswers(JSON.parse(savedAnswers));
     }
     
-    const employeeId = localStorage.getItem('loggedInUserEmployeeId');
-    if (employeeId) {
-      findUserByEmployeeId(employeeId).then(setCurrentUser);
+    const savedExamineeInfo = localStorage.getItem(`exam-examinee-info`);
+    if (savedExamineeInfo) {
+      setExamineeInfo(JSON.parse(savedExamineeInfo));
+    } else {
+        // This case should be handled by the page layout, but as a fallback:
+        toast({
+            title: "エラー",
+            description: "受験者情報が見つかりません。最初のページからやり直してください。",
+            variant: "destructive"
+        });
+        router.push('/');
     }
-  }, [exam.id]);
+  }, [exam.id, router, toast]);
 
   const getAnswerForQuestion = (questionId: string): string => {
     const answer = answers.find(a => a.questionId === questionId);
@@ -60,10 +66,10 @@ export function ReviewView({ exam }: ReviewViewProps) {
   }
 
   const handleSubmit = async () => {
-    if (!currentUser) {
+    if (!examineeInfo) {
         toast({
             title: "エラー",
-            description: "ログインしているユーザーが見つかりません。再度ログインしてください。",
+            description: "受験者情報が見つかりません。最初のページからやり直してください。",
             variant: "destructive"
         });
         return;
@@ -79,8 +85,9 @@ export function ReviewView({ exam }: ReviewViewProps) {
 
         await addSubmission({
             examId: exam.id,
-            examineeId: currentUser.id,
-            examineeHeadquarters: currentUser.headquarters,
+            examineeId: examineeInfo.employeeId,
+            examineeName: examineeInfo.name,
+            examineeHeadquarters: examineeInfo.headquarters,
             answers: submissionAnswers,
         });
 
@@ -90,7 +97,15 @@ export function ReviewView({ exam }: ReviewViewProps) {
             variant: "default",
         });
         localStorage.removeItem(`exam-${exam.id}-answers`);
-        router.push("/"); // Redirect to dashboard after submission
+        localStorage.removeItem(`exam-examinee-info`);
+        localStorage.removeItem(`exam-${exam.id}-endTime`);
+        exam.questions.forEach(q => {
+          if (q.id) {
+            localStorage.removeItem(`exam-${exam.id}-question-${q.id}-endTime`);
+          }
+        });
+
+        router.push("/"); // Redirect to portal home after submission
     } catch (error) {
         console.error("Failed to submit exam:", error);
         toast({

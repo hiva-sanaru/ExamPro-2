@@ -29,10 +29,9 @@ import { findUserByEmployeeId } from '@/services/userService';
 interface SubmissionListProps {
     submissions: Submission[];
     exams: Exam[];
-    users: User[];
 }
 
-export function SubmissionList({ submissions, exams, users }: SubmissionListProps) {
+export function SubmissionList({ submissions, exams }: SubmissionListProps) {
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
 
@@ -60,22 +59,13 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
     }, [submissions]);
 
     useEffect(() => {
-        if (submissions.length > 0 && exams.length > 0 && users.length > 0) {
+        if (submissions.length > 0 && exams.length > 0) {
             setIsLoading(false);
         }
-        // Handle case where there are no submissions
         if (submissions.length === 0) {
             setIsLoading(false);
         }
-    }, [submissions, exams, users]);
-
-
-    const usersMap = useMemo(() => {
-        return users.reduce((acc, user) => {
-            acc[user.id] = user;
-            return acc;
-        }, {} as Record<string, User>);
-    }, [users]);
+    }, [submissions, exams]);
     
     const examsMap = useMemo(() => {
         return exams.reduce((acc, exam) => {
@@ -87,7 +77,6 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
     const handleCheckboxChange = async (submission: Submission) => {
         const updatedStatus = !submission.resultCommunicated;
 
-        // Optimistically update the UI
         setLocalSubmissions(prev => 
             prev.map(s => 
                 s.id === submission.id ? { ...s, resultCommunicated: updatedStatus } : s
@@ -101,7 +90,6 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
                 description: `結果伝達ステータスが変更されました。`,
             });
         } catch (error) {
-            // Revert on error
             setLocalSubmissions(prev => 
                 prev.map(s => 
                     s.id === submission.id ? { ...s, resultCommunicated: !updatedStatus } : s
@@ -122,7 +110,6 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
             toast({
                 title: "提出物が削除されました",
             });
-            // Refresh the list by filtering out the deleted submission
             setLocalSubmissions(prev => prev.filter(s => s.id !== submissionId));
         } catch (error) {
             console.error(`Failed to delete submission ${submissionId}`, error);
@@ -152,21 +139,12 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
     )
 
     const getStatusName = (submission: Submission): keyof typeof badgeVariants.propTypes.status => {
-        // Final outcome takes precedence
-        if (submission.finalOutcome === 'Passed' && !submission.lessonReviewUrl && examsMap[submission.examId]?.type === 'WrittenAndInterview') return '授業審査待ち';
+        const exam = examsMap[submission.examId];
+        if (submission.status === '授業審査待ち' && exam?.type === 'WrittenAndInterview') return '授業審査待ち';
         if (submission.status === '合格') return '合格';
         if (submission.status === '不合格') return '不合格';
-        if (submission.status === '授業審査待ち') return '授業審査待ち';
         if (submission.status === '人事確認中') return '人事確認中';
         if (submission.status === 'Submitted') return '本部採点中';
-
-        // Legacy statuses
-        if (submission.status === 'Grading') return '人事確認中';
-        if (submission.status === 'Completed') {
-            if (submission.finalOutcome === 'Passed') return '合格';
-            if (submission.finalOutcome === 'Failed') return '不合格';
-            return '人事確認中';
-        }
         return '不明';
     }
 
@@ -200,12 +178,11 @@ export function SubmissionList({ submissions, exams, users }: SubmissionListProp
           ) : (
             localSubmissions.map((submission) => {
                 const exam = examsMap[submission.examId];
-                const examinee = usersMap[submission.examineeId];
                 const statusName = getStatusName(submission);
                 return (
                     <TableRow key={submission.id}>
                         <TableCell className="font-medium whitespace-nowrap">{exam?.title || '－'}</TableCell>
-                        <TableCell className="whitespace-nowrap">{examinee?.name || '－'}</TableCell>
+                        <TableCell className="whitespace-nowrap">{submission.examineeName || '－'}</TableCell>
                         <TableCell className="whitespace-nowrap">{submission.examineeHeadquarters?.replace('本部', '') || '－'}</TableCell>
                         <TableCell className="whitespace-nowrap text-center">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd", { locale: ja })}</TableCell>
                         <TableCell className="text-center whitespace-nowrap">

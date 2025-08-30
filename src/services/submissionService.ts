@@ -9,10 +9,12 @@ export async function getSubmissions(): Promise<Submission[]> {
     const snapshot = await getDocs(submissionsCollection);
     return snapshot.docs.map(doc => {
         const data = doc.data();
+        // Ensure submittedAt is converted to Date, handling potential undefined
+        const submittedAt = data.submittedAt ? data.submittedAt.toDate() : new Date();
         return {
             id: doc.id,
             ...data,
-            submittedAt: data.submittedAt.toDate(),
+            submittedAt,
         } as Submission;
     });
 }
@@ -22,10 +24,11 @@ export async function getSubmission(id: string): Promise<Submission | null> {
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         const data = docSnap.data();
+        const submittedAt = data.submittedAt ? data.submittedAt.toDate() : new Date();
         return {
             id: docSnap.id,
             ...data,
-            submittedAt: data.submittedAt.toDate(),
+            submittedAt,
         } as Submission;
     }
     return null;
@@ -45,7 +48,6 @@ export async function addSubmission(submissionData: Omit<Submission, 'id' | 'sub
 export async function updateSubmission(submissionId: string, submissionData: Partial<Omit<Submission, 'id'>>): Promise<void> {
     const docRef = doc(db, 'submissions', submissionId);
     
-    // Convert Date objects to Firestore Timestamps before updating
     const dataToUpdate: { [key: string]: any } = { ...submissionData };
 
     if (submissionData.lessonReviewDate1 instanceof Date) {
@@ -58,7 +60,6 @@ export async function updateSubmission(submissionId: string, submissionData: Par
     await updateDoc(docRef, dataToUpdate);
 }
 
-// Delete a submission
 export async function deleteSubmission(submissionId: string): Promise<void> {
     const docRef = doc(db, 'submissions', submissionId);
     await deleteDoc(docRef);
