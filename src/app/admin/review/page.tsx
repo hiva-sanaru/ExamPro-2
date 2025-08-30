@@ -8,6 +8,8 @@ import { getExams } from '@/services/examService';
 import { getSubmissions } from '@/services/submissionService';
 import type { Submission, Exam } from '@/lib/types';
 import { FileText } from "lucide-react";
+import { formatInTimeZone } from 'date-fns-tz';
+import { ja } from 'date-fns/locale';
 
 export default function ReviewListPage() {
   const [exams, setExams] = useState<Exam[]>([]);
@@ -31,7 +33,6 @@ export default function ReviewListPage() {
 
   const handleExportSubmissions = () => {
         const headers = [
-            "提出ID",
             "試験名",
             "受験者名",
             "社員番号",
@@ -41,24 +42,45 @@ export default function ReviewListPage() {
             "本部スコア",
             "人事室スコア",
             "最終スコア",
-            "授業審査URL"
+            "授業審査URL",
+            "授業審査希望日時1",
+            "授業審査希望日時2",
+            "授業審査校舎名",
+            "授業審査教室名",
         ];
         
         const rows = submissions.map(submission => {
             const exam = exams.find(e => e.id === submission.examId);
+            const formatDate = (date: any) => {
+                if (!date) return "－";
+                // Firestore Timestamp might be converted already, or might not be.
+                const dateObj = date.toDate ? date.toDate() : new Date(date);
+                return formatInTimeZone(dateObj, 'Asia/Tokyo', "yyyy-MM-dd HH:mm", { locale: ja });
+            }
+
             return [
-                submission.id,
                 exam?.title || "－",
                 submission.examineeName || "－",
                 submission.examineeId || "－",
                 submission.examineeHeadquarters || "－",
-                submission.submittedAt.toISOString(),
+                formatDate(submission.submittedAt),
                 submission.status,
                 submission.hqGrade?.score ?? "－",
                 submission.poGrade?.score ?? "－",
                 submission.finalScore ?? "－",
-                submission.lessonReviewUrl ?? "－"
-            ].join(',');
+                submission.lessonReviewUrl ?? "－",
+                submission.lessonReviewDate1 ? formatDate(submission.lessonReviewDate1) : "－",
+                submission.lessonReviewDate2 ? formatDate(submission.lessonReviewDate2) : "－",
+                submission.lessonReviewSchoolName ?? "－",
+                submission.lessonReviewClassroomName ?? "－",
+            ].map(value => {
+                const str = String(value);
+                // Escape commas and quotes for CSV
+                if (str.includes(',')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            }).join(',');
         });
 
         const csvString = [headers.join(','), ...rows].join('\n');
