@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { gradeAnswer } from "@/ai/flows/grade-answer";
 import { useToast } from "@/hooks/use-toast";
-import type { Exam, Submission } from "@/lib/types";
+import type { Exam, Submission, QuestionGrade } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -34,15 +34,20 @@ interface GradingResult {
   isLoading: boolean;
 }
 
-interface ManualScore {
+interface ManualScores {
     [questionId: string]: number;
+}
+
+interface AiJustifications {
+    [questionId: string]: string;
 }
 
 export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [gradingResults, setGradingResults] = useState<GradingResult[]>([]);
-  const [manualScores, setManualScores] = useState<ManualScore>({});
+  const [manualScores, setManualScores] = useState<ManualScores>({});
+  const [aiJustifications, setAiJustifications] = useState<AiJustifications>({});
   const [overallFeedback, setOverallFeedback] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBulkGrading, setIsBulkGrading] = useState(false);
@@ -73,17 +78,41 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
   }, [totalScore, finalScore, finalOutcome, isPersonnelOfficeView]);
 
   useEffect(() => {
-    if (reviewerRole === "人事室" && submission.hqGrade) {
-        setManualScores(submission.poGrade?.scores || submission.hqGrade.scores || {});
-        setOverallFeedback(submission.poGrade?.justification || '');
-        setFinalScore(submission.finalScore ?? submission.hqGrade.score);
-        setFinalOutcome(submission.finalOutcome)
+    const gradeData = reviewerRole === "人事室" ? submission.poGrade : submission.hqGrade;
+    const initialScores: ManualScores = {};
+    const initialJustifications: AiJustifications = {};
+
+    if (gradeData?.questionGrades) {
+        for (const qId in gradeData.questionGrades) {
+            initialScores[qId] = gradeData.questionGrades[qId].score;
+            if (gradeData.questionGrades[qId].justification) {
+                initialJustifications[qId] = gradeData.questionGrades[qId].justification!;
+            }
+        }
+    }
+    
+    // For PO, fallback to HQ scores if PO grade doesn't exist yet
+    if (reviewerRole === "人事室" && !submission.poGrade && submission.hqGrade?.questionGrades) {
+         for (const qId in submission.hqGrade.questionGrades) {
+            initialScores[qId] = submission.hqGrade.questionGrades[qId].score;
+             if (submission.hqGrade.questionGrades[qId].justification) {
+                initialJustifications[qId] = submission.hqGrade.questionGrades[qId].justification!;
+            }
+        }
+    }
+
+    setManualScores(initialScores);
+    setAiJustifications(initialJustifications);
+    setOverallFeedback(gradeData?.justification || '');
+
+    if (reviewerRole === "人事室") {
+        setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
+        setFinalOutcome(submission.finalOutcome);
     } else {
-        setManualScores(submission.hqGrade?.scores || {});
-        setOverallFeedback(submission.hqGrade?.justification || '');
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
     }
+
   }, [submission, reviewerRole]);
 
 
@@ -131,7 +160,8 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     const results = await Promise.all(gradingPromises);
     
     const newGradingResults: GradingResult[] = [];
-    const newManualScores: ManualScore = { ...manualScores };
+    const newManualScores: ManualScores = { ...manualScores };
+    const newAiJustifications: AiJustifications = {};
     
     results.forEach(result => {
         if ('error' in result) {
@@ -144,11 +174,13 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                 isLoading: false,
             });
             newManualScores[result.questionId] = result.score;
+            newAiJustifications[result.questionId] = result.justification;
         }
     });
     
     setGradingResults(newGradingResults);
     setManualScores(newManualScores);
+    setAiJustifications(newAiJustifications);
 
     setIsBulkGrading(false);
     toast({ title: "AI一括採点が完了しました！", description: "各問題のスコアと評価を確認してください。" });
@@ -162,12 +194,20 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     let dataToUpdate: Partial<Submission> = {};
     let newStatus: Submission['status'] = submission.status;
 
+    const questionGrades: { [key: string]: QuestionGrade } = {};
+    for (const qId in manualScores) {
+        questionGrades[qId] = {
+            score: manualScores[qId],
+            justification: aiJustifications[qId] || undefined
+        };
+    }
+
     if (reviewerRole === '本部') {
         dataToUpdate.hqGrade = {
             score: totalScore,
             justification: overallFeedback,
             reviewer: mockReviewerName,
-            scores: manualScores
+            questionGrades: questionGrades
         };
 
         if (totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission') {
@@ -197,7 +237,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             score: totalScore,
             justification: overallFeedback,
             reviewer: mockReviewerName,
-            scores: manualScores
+            questionGrades: questionGrades
         };
         dataToUpdate.finalScore = totalScore;
         dataToUpdate.finalOutcome = finalOutcome;
@@ -292,14 +332,18 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
           const answerDisplay = Array.isArray(answerValue) ? answerValue.map((a, i) => `(${i+1}) ${a}`).join('\n') : answerValue.toString();
           const modelAnswerDisplay = Array.isArray(question.modelAnswer) ? question.modelAnswer.map((a, i) => `(${i + 1}) ${a}`).join('\n') : question.modelAnswer;
 
+          const justification = isPersonnelOfficeView ? (aiJustifications[question.id!] || submission.hqGrade?.questionGrades?.[question.id!]?.justification) : (result?.justification || aiJustifications[question.id!]);
+
           return (
             <Card key={question.id} className="overflow-hidden">
-                <CardHeader className="bg-primary/90 text-primary-foreground p-4">
+                <CardHeader className="bg-primary/5 p-4 border-b">
                     <div className="flex justify-between w-full items-center">
-                        <div className="text-base font-normal text-left text-primary-foreground">問題 {index + 1}: {question.text}</div>
+                        <div className="text-base font-normal text-left text-primary-foreground">
+                            <CardTitle className="text-base font-normal text-foreground">問題 {index + 1}: {question.text}</CardTitle>
+                        </div>
                         <div className="flex items-center gap-2">
-                            {result && !result.isLoading && <Badge variant="secondary">AI採点済み</Badge>}
-                            {isBulkGrading && <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />}
+                             {result && !result.isLoading && <Badge variant="secondary">AI採点済み</Badge>}
+                             {isBulkGrading && !result && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                         </div>
                     </div>
                 </CardHeader>
@@ -317,14 +361,14 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                     
                     <div className="space-y-2 pt-4 border-t">
                         <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
-                        {result && !result.isLoading ? (
+                        {justification ? (
                             <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
-                                <p><strong>スコア:</strong> {result.score}/{question.points}</p>
-                                <p><strong>根拠:</strong> {result.justification}</p>
+                                <p><strong>スコア:</strong> {manualScores[question.id!] || submission.hqGrade?.questionGrades?.[question.id!]?.score || 0}/{question.points}</p>
+                                <p><strong>根拠:</strong> {justification}</p>
                             </div>
                         ) : (
                             <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
-                                <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "必要に応じて、下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                                <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
                             </div>
                         )}
                     </div>
@@ -339,7 +383,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                                 className="w-24" 
                                 max={question.points}
                                 min={0}
-                                value={manualScores[question.id!] || ''}
+                                value={manualScores[question.id!] ?? ''}
                                 onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
                             />
                             <span className="text-muted-foreground">/ {question.points} 点</span>
@@ -492,5 +536,3 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     </Card>
   );
 }
-
-    

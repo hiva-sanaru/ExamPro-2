@@ -32,11 +32,16 @@ export interface Answer {
   subAnswers?: Answer[];
 }
 
+export interface QuestionGrade {
+  score: number;
+  justification?: string;
+}
+
 export interface Grade {
     score: number;
     justification: string;
     reviewer: string;
-    scores?: { [questionId: string]: number }; // Individual question scores
+    questionGrades?: { [questionId: string]: QuestionGrade };
 }
 
 export interface Submission {
