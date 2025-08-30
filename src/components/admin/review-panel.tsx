@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Wand2, User, Check, Loader2, Building, ThumbsUp, ThumbsDown, Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Bot, Wand2, User, Check, Loader2, Building, ThumbsUp, ThumbsDown, Calendar as CalendarIcon, CheckCircle } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { updateSubmission } from "@/services/submissionService";
@@ -222,7 +222,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     }
   }
 
-  const showLessonReviewForm = !isPersonnelOfficeView && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
+  const showLessonReviewForm = reviewerRole === '本部' && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
 
 
   return (
@@ -281,6 +281,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
           const result = gradingResults.find((r) => r.questionId === question.id);
           const answerValue = getAnswerForQuestion(question.id!);
           const answerDisplay = Array.isArray(answerValue) ? answerValue.map((a, i) => `(${i+1}) ${a}`).join('\n') : answerValue.toString();
+          const modelAnswerDisplay = Array.isArray(question.modelAnswer) ? question.modelAnswer.map((a, i) => `(${i + 1}) ${a}`).join('\n') : question.modelAnswer;
 
           return (
             <Card key={question.id} className="overflow-hidden">
@@ -299,21 +300,26 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                             <Label className="flex items-center gap-2"><User className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
                             <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{answerDisplay}</p>
                         </div>
-                         <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
-                            {result && !result.isLoading ? (
-                                <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
-                                    <p><strong>スコア:</strong> {result.score}/{question.points}</p>
-                                    <p><strong>根拠:</strong> {result.justification}</p>
-                                </div>
-                            ) : (
-                                <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
-                                    <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "必要に応じて、下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
-                                </div>
-                            )}
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
+                            <p className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[100px] whitespace-pre-wrap">{modelAnswerDisplay || "－"}</p>
                         </div>
                     </div>
                     
+                    <div className="space-y-2 pt-4 border-t">
+                        <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
+                        {result && !result.isLoading ? (
+                            <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
+                                <p><strong>スコア:</strong> {result.score}/{question.points}</p>
+                                <p><strong>根拠:</strong> {result.justification}</p>
+                            </div>
+                        ) : (
+                            <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
+                                <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "必要に応じて、下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="space-y-2 pt-4 border-t">
                         <Label htmlFor={`score-${question.id}`}>{isPersonnelOfficeView ? "最終スコア" : "あなたの評価"}</Label>
                         <div className="flex items-center gap-2">
@@ -465,3 +471,5 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     </Card>
   );
 }
+
+    
