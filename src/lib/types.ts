@@ -55,6 +55,8 @@ export interface Submission {
   lessonReviewUrl?: string;
   lessonReviewDate1?: any; // Firestore Timestamp
   lessonReviewDate2?: any; // Firestore Timestamp
+  lessonReviewSchoolName?: string;
+  lessonReviewClassroomName?: string;
   resultCommunicated?: boolean;
 }
 

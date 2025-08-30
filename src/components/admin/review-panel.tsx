@@ -56,6 +56,9 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
   const [time1, setTime1] = useState(submission.lessonReviewDate1 ? format(submission.lessonReviewDate1.toDate(), 'HH:mm') : '09:00');
   const [date2, setDate2] = useState<Date | undefined>(submission.lessonReviewDate2?.toDate());
   const [time2, setTime2] = useState(submission.lessonReviewDate2 ? format(submission.lessonReviewDate2.toDate(), 'HH:mm') : '10:00');
+  const [schoolName, setSchoolName] = useState(submission.lessonReviewSchoolName || '');
+  const [classroomName, setClassroomName] = useState(submission.lessonReviewClassroomName || '');
+
 
   const totalScore = useMemo(() => {
     return Object.values(manualScores).reduce((acc, score) => acc + (score || 0), 0);
@@ -78,6 +81,8 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
     } else {
         setManualScores(submission.hqGrade?.scores || {});
         setOverallFeedback(submission.hqGrade?.justification || '');
+        setSchoolName(submission.lessonReviewSchoolName || '');
+        setClassroomName(submission.lessonReviewClassroomName || '');
     }
   }, [submission, reviewerRole]);
 
@@ -182,6 +187,8 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                 lessonReviewDate2.setHours(h2, m2);
                 dataToUpdate.lessonReviewDate2 = lessonReviewDate2;
             }
+            dataToUpdate.lessonReviewSchoolName = schoolName;
+            dataToUpdate.lessonReviewClassroomName = classroomName;
         }
 
         newStatus = "人事確認中";
@@ -266,10 +273,12 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                     </div>
                     {submission.lessonReviewDate1 && (
                         <div className="space-y-2 pt-4 border-t mt-4">
-                           <Label>提案された授業審査日時</Label>
-                           <div className="text-sm">
+                           <Label>提案された授業審査日時・場所</Label>
+                           <div className="text-sm space-y-1">
                              <p><strong>第一希望:</strong> {format(submission.lessonReviewDate1.toDate(), "PPP HH:mm", { locale: ja })}</p>
                              {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
+                             {submission.lessonReviewSchoolName && <p><strong>校舎名:</strong> {submission.lessonReviewSchoolName}</p>}
+                             {submission.lessonReviewClassroomName && <p><strong>教室名:</strong> {submission.lessonReviewClassroomName}</p>}
                            </div>
                         </div>
                     )}
@@ -287,7 +296,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
             <Card key={question.id} className="overflow-hidden">
                 <CardHeader className="bg-primary/90 text-primary-foreground p-4">
                     <div className="flex justify-between w-full items-center">
-                        <div className="text-base font-normal text-left text-primary-foreground">問題 {index + 1}: {question.text} ({question.points}点)</div>
+                        <div className="text-base font-normal text-left text-primary-foreground">問題 {index + 1}: {question.text}</div>
                         <div className="flex items-center gap-2">
                             {result && !result.isLoading && <Badge variant="secondary">AI採点済み</Badge>}
                             {isBulkGrading && <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />}
@@ -378,17 +387,21 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                  <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800 mt-4">
                     <CardHeader>
                          <CardTitle className="text-blue-800 dark:text-blue-300">高得点 - 授業審査へ</CardTitle>
-                         <CardDescription>この受験者は80点以上を獲得しました。授業審査の希望日時を入力してください。</CardDescription>
+                         <CardDescription>この受験者は80点以上を獲得しました。授業審査の希望日時と場所を入力してください。</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
                                 <div className="space-y-2">
+                                    <Label htmlFor="schoolName">校舎名</Label>
+                                    <Input id="schoolName" value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="例: 名古屋本部校" className="bg-white" />
+                                </div>
+                                 <div className="space-y-2">
                                     <Label htmlFor="date1">第一希望日時</Label>
                                     <div className="flex gap-2">
                                         <Popover>
                                             <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal bg-white", !date1 && "text-muted-foreground")}>
+                                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-white", !date1 && "text-muted-foreground")}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {date1 ? format(date1, "PPP", { locale: ja }) : <span>日付を選択</span>}
                                             </Button>
@@ -397,15 +410,21 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                                                 <Calendar mode="single" selected={date1} onSelect={setDate1} initialFocus />
                                             </PopoverContent>
                                         </Popover>
-                                        <Input type="time" value={time1} onChange={e => setTime1(e.target.value)} className="w-28 bg-white" />
+                                        <Input type="time" value={time1} onChange={e => setTime1(e.target.value)} className="w-32 bg-white" />
                                     </div>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="classroomName">教室名</Label>
+                                    <Input id="classroomName" value={classroomName} onChange={e => setClassroomName(e.target.value)} placeholder="例: 301教室" className="bg-white" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="date2">第二希望日時 (任意)</Label>
                                     <div className="flex gap-2">
                                          <Popover>
                                             <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn("w-[240px] justify-start text-left font-normal bg-white", !date2 && "text-muted-foreground")}>
+                                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-white", !date2 && "text-muted-foreground")}>
                                                 <CalendarIcon className="mr-2 h-4 w-4" />
                                                 {date2 ? format(date2, "PPP", { locale: ja }) : <span>日付を選択</span>}
                                             </Button>
@@ -414,7 +433,7 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                                                 <Calendar mode="single" selected={date2} onSelect={setDate2} />
                                             </PopoverContent>
                                         </Popover>
-                                        <Input type="time" value={time2} onChange={e => setTime2(e.target.value)} className="w-28 bg-white"/>
+                                        <Input type="time" value={time2} onChange={e => setTime2(e.target.value)} className="w-32 bg-white"/>
                                     </div>
                                 </div>
                             </div>
@@ -435,10 +454,12 @@ export function ReviewPanel({ exam, submission, reviewerRole }: ReviewPanelProps
                         ) : (
                            submission.lessonReviewDate1 ? (
                              <div className="space-y-2">
-                               <Label>本部担当者が入力した希望日時</Label>
-                                <div className="text-sm">
+                               <Label>本部担当者が入力した希望日時・場所</Label>
+                                <div className="text-sm space-y-1">
                                   <p><strong>第一希望:</strong> {format(submission.lessonReviewDate1.toDate(), "PPP HH:mm", { locale: ja })}</p>
                                   {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
+                                  {submission.lessonReviewSchoolName && <p><strong>校舎名:</strong> {submission.lessonReviewSchoolName}</p>}
+                                  {submission.lessonReviewClassroomName && <p><strong>教室名:</strong> {submission.lessonReviewClassroomName}</p>}
                                </div>
                              </div>
                            ) : (
