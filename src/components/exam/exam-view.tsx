@@ -76,7 +76,7 @@ export function ExamView({ exam }: ExamViewProps) {
   useEffect(() => {
     if (!exam || isLoading) return;
     localStorage.setItem(`exam-${exam.id}-answers`, JSON.stringify(answers));
-  }, [answers, isLoading]);
+  }, [answers, exam, isLoading]);
 
   const handleNext = useCallback(() => {
     if (api) {
@@ -112,7 +112,7 @@ export function ExamView({ exam }: ExamViewProps) {
     if (count === 0) return;
     const answeredCount = answers.filter(a => {
         if (Array.isArray(a.subAnswers) && a.subAnswers.length > 0) {
-            return a.subAnswers.some(sa => sa.value.toString().trim() !== '');
+            return a.subAnswers.some(sa => sa.value && sa.value.toString().trim() !== '');
         }
         if (Array.isArray(a.value)) {
             return a.value.some(v => v && v.trim() !== '');
@@ -124,27 +124,28 @@ export function ExamView({ exam }: ExamViewProps) {
 
   const handleAnswerChange = (questionId: string, value: string | string[] | Answer[]) => {
     setAnswers((prev) => {
-      const existingAnswerIndex = prev.findIndex((a) => a.questionId === questionId);
-      
-      if (existingAnswerIndex > -1) {
-        return prev.map((a, i) => {
-          if (i === existingAnswerIndex) {
+        const newAnswers = [...prev];
+        const existingAnswerIndex = newAnswers.findIndex((a) => a.questionId === questionId);
+
+        if (existingAnswerIndex > -1) {
+            const existingAnswer = { ...newAnswers[existingAnswerIndex] };
             if (isSubAnswerArray(value)) {
-              return { ...a, subAnswers: value };
+                existingAnswer.subAnswers = value;
+            } else {
+                existingAnswer.value = value;
             }
-            return { ...a, value: value as string | string[] };
-          }
-          return a;
-        });
-      }
-      
-      // If a new answer is created
-      if (isSubAnswerArray(value)) {
-        return [...prev, { questionId, value: '', subAnswers: value }];
-      }
-      return [...prev, { questionId, value: value as string | string[], subAnswers: [] }];
+            newAnswers[existingAnswerIndex] = existingAnswer;
+        } else {
+            if (isSubAnswerArray(value)) {
+                newAnswers.push({ questionId, value: '', subAnswers: value });
+            } else {
+                newAnswers.push({ questionId, value: value as string | string[], subAnswers: [] });
+            }
+        }
+        return newAnswers;
     });
-  };
+};
+
   
   const handleTimeUp = useCallback(() => {
     // Time is up for the whole exam, force review and submission
