@@ -14,7 +14,7 @@ const Textarea = React.forwardRef<
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (internalRef.current) {
       internalRef.current.style.height = 'auto';
-      internal.current.style.height = `${internalRef.current.scrollHeight}px`;
+      internalRef.current.style.height = `${internalRef.current.scrollHeight}px`;
     }
     if (onChange) {
       onChange(e);
