@@ -51,6 +51,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const [manualScores, setManualScores] = useState<ManualScores>({});
   const [aiJustifications, setAiJustifications] = useState<AiJustifications>({});
   const [overallFeedback, setOverallFeedback] = useState("");
+  const [reviewerName, setReviewerName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBulkGrading, setIsBulkGrading] = useState(false);
   const isPersonnelOfficeView = reviewerRole === "人事室";
@@ -114,6 +115,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     setManualScores(initialScores);
     setAiJustifications(initialJustifications);
     setOverallFeedback(gradeData?.justification || '');
+    setReviewerName(gradeData?.reviewerName || (reviewerRole === '本部' ? currentUser.name : ''));
+
 
     if (reviewerRole === "人事室") {
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
@@ -123,7 +126,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         setClassroomName(submission.lessonReviewClassroomName || '');
     }
 
-  }, [submission, reviewerRole]);
+  }, [submission, reviewerRole, currentUser.name]);
 
 
   const handleManualScoreChange = (questionId: string, score: string) => {
@@ -262,6 +265,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                   score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
                   justification: overallFeedback,
                   reviewer: 'AI Draft',
+                  reviewerName: reviewerName,
                   questionGrades: questionGrades
               };
               await updateSubmission(submission.id, { hqGrade: newHqGrade });
@@ -302,6 +306,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             score: totalScore,
             justification: overallFeedback,
             reviewer: mockReviewerName,
+            reviewerName: reviewerName,
             questionGrades: questionGrades
         };
 
@@ -332,6 +337,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             score: totalScore,
             justification: overallFeedback,
             reviewer: mockReviewerName,
+            reviewerName: reviewerName,
             questionGrades: questionGrades
         };
         dataToUpdate.finalScore = totalScore;
@@ -392,7 +398,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300"><Building className="w-5 h-5" />本部採点結果</CardTitle>
                     <CardDescription>
-                        本部担当者 ({submission.hqGrade.reviewer}) による採点結果です。
+                        本部担当者 ({submission.hqGrade.reviewerName || submission.hqGrade.reviewer}) による採点結果です。
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -640,16 +646,29 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                     </Card>
                 )}
 
-                <div className="w-full space-y-2 mt-4">
-                    <Label htmlFor="overall-feedback">
-                        {isPersonnelOfficeView ? "人事室フィードバック (最終承認)" : "全体的なフィードバック"}
-                    </Label>
-                    <Textarea 
-                        id="overall-feedback" 
-                        placeholder="この提出物に関する最終コメントを記入してください..." 
-                        value={overallFeedback}
-                        onChange={(e) => setOverallFeedback(e.target.value)}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div className="w-full space-y-2">
+                        <Label htmlFor="overall-feedback">
+                            {isPersonnelOfficeView ? "人事室フィードバック (最終承認)" : "全体的なフィードバック"}
+                        </Label>
+                        <Textarea 
+                            id="overall-feedback" 
+                            placeholder="この提出物に関する最終コメントを記入してください..." 
+                            value={overallFeedback}
+                            onChange={(e) => setOverallFeedback(e.target.value)}
+                        />
+                    </div>
+                     <div className="w-full space-y-2">
+                        <Label htmlFor="reviewer-name">
+                           {isPersonnelOfficeView ? "承認者名" : "採点者名"}
+                        </Label>
+                        <Input 
+                            id="reviewer-name" 
+                            placeholder="氏名を入力..." 
+                            value={reviewerName}
+                            onChange={(e) => setReviewerName(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
             <div className="flex justify-end w-full">
@@ -663,3 +682,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
+
+    

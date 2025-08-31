@@ -41,6 +41,7 @@ export interface Grade {
     score: number;
     justification: string;
     reviewer: string;
+    reviewerName?: string;
     questionGrades?: { [questionId: string]: QuestionGrade };
 }
 
@@ -87,3 +88,5 @@ export interface ExamineeInfo {
   name: string;
   headquarters: string;
 }
+
+    
