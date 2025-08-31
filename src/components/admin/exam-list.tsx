@@ -12,9 +12,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Edit, Trash2, Eye, Loader2, Tag } from "lucide-react";
+import { Edit, Trash2, Eye, Loader2 } from "lucide-react";
 import { cva } from "class-variance-authority";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -128,46 +127,44 @@ export function ExamList({ isAdmin }: ExamListProps) {
               <TableCell>{exam.totalPoints} 点</TableCell>
               <TableCell>{exam.duration} 分</TableCell>
               <TableCell className="text-right">
-                <AlertDialog>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">アクション</span>
+                <div className="flex justify-end items-center gap-2">
+                    <Button variant="outline" size="icon" asChild>
+                        <Link href={`/exam/${exam.id}`}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">表示</span>
+                        </Link>
+                    </Button>
+                    {isAdmin && (
+                        <>
+                            <Button variant="outline" size="icon" asChild>
+                                <Link href={`/admin/create-exam?examId=${exam.id}`}>
+                                    <Edit className="h-4 w-4" />
+                                    <span className="sr-only">編集</span>
+                                </Link>
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                               <Link href={`/exam/${exam.id}`}><Eye className="mr-2 h-4 w-4"/>表示</Link>
-                            </DropdownMenuItem>
-                            {isAdmin && (
-                              <>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/create-exam?examId=${exam.id}`}><Edit className="mr-2 h-4 w-4"/>編集</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
+                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive hover:!text-destructive focus:!text-destructive" onSelect={(e) => e.preventDefault()}>
-                                        <Trash2 className="mr-2 h-4 w-4"/>削除
-                                    </DropdownMenuItem>
+                                    <Button variant="destructive" size="icon">
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">削除</span>
+                                    </Button>
                                 </AlertDialogTrigger>
-                              </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                この操作は元に戻すことはできません。試験「{exam.title}」と関連するすべてのデータが完全に削除されます。
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(exam.id, exam.title)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            この操作は元に戻すことはできません。試験「{exam.title}」と関連するすべてのデータが完全に削除されます。
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDelete(exam.id, exam.title)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </>
+                    )}
+                </div>
               </TableCell>
             </TableRow>
           ))}
