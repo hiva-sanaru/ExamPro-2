@@ -69,16 +69,18 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
 
   const isActionDisabled = useMemo(() => {
-    if (currentUser.role === 'system_administrator') return false;
+    if (currentUser.role === 'system_administrator') {
+        return false;
+    }
     if (isPersonnelOfficeView) {
         return true; // Only system admins can act on PO view
     }
     // HQ view, check if user is hq_administrator and belongs to the submission's HQ
     if(currentUser.role === 'hq_administrator'){
-        return submission.examineeHeadquarters !== currentUser.headquarters;
+        return submission.status !== 'Submitted' && submission.status !== '本部採点中';
     }
     return true;
-  }, [currentUser, isPersonnelOfficeView, submission.examineeHeadquarters]);
+  }, [currentUser, isPersonnelOfficeView, submission.examineeHeadquarters, submission.status]);
 
 
   const totalScore = useMemo(() => {
@@ -120,7 +122,15 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     setManualScores(initialScores);
     setAiJustifications(initialJustifications);
     setOverallFeedback(gradeData?.justification || '');
-    setReviewerName(gradeData?.reviewerName || '');
+
+    // Set reviewer name logic
+    if (reviewerRole === '本部') {
+        // If there's already a name saved for HQ, use it. Otherwise, it remains empty for manual input.
+        setReviewerName(submission.hqGrade?.reviewerName || '');
+    } else { // Personnel Office
+        // If there's a name for PO, use it. Otherwise, use current user's name as default.
+        setReviewerName(submission.poGrade?.reviewerName || (currentUser.role === 'system_administrator' ? currentUser.name : ''));
+    }
 
 
     if (reviewerRole === "人事室") {
@@ -131,18 +141,20 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         setClassroomName(submission.lessonReviewClassroomName || '');
     }
 
-  }, [submission, reviewerRole]);
+  }, [submission, reviewerRole, currentUser]);
 
 
   const handleManualScoreChange = (questionId: string, score: string) => {
-    const newScore = Number(score);
     const question = exam.questions.find(q => q.id === questionId);
     if (!question) return;
 
     if (score === '') {
         setManualScores(prev => ({...prev, [questionId]: undefined}));
-    } else if (!isNaN(newScore) && newScore <= question.points) {
-        setManualScores(prev => ({...prev, [questionId]: newScore}));
+    } else {
+        const newScore = Number(score);
+        if (!isNaN(newScore) && newScore <= question.points) {
+            setManualScores(prev => ({...prev, [questionId]: newScore}));
+        }
     }
   }
 
@@ -339,7 +351,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         const poQuestionGrades: { [key: string]: QuestionGrade } = {};
         for (const qId in manualScores) {
             const grade: QuestionGrade = { score: manualScores[qId] ?? 0 };
-             if (aiJustifications[qId]) {
+            if (aiJustifications[qId]) {
               grade.justification = aiJustifications[qId];
             }
             poQuestionGrades[qId] = grade;
@@ -410,7 +422,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300"><Building className="w-5 h-5" />本部採点結果</CardTitle>
                     <CardDescription>
-                        本部担当者 ({submission.hqGrade.reviewerName || submission.hqGrade.reviewer}) による採点結果です。
+                        本部担当者 ({submission.hqGrade.reviewerName || '未入力'}) による採点結果です。
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -638,7 +650,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         </CardHeader>
                         <CardContent>
                             {exam.lessonReviewType === 'UrlSubmission' ? (
-                                <p>この試験は「YouTube URL提出」形式です。このまま承認すると、受験者のマイページにURL提出フォームが表示されます。</p>
+                                <p>この試験は「YouTube URL提出」形式です。このまま承認すると、トップページにURL提出用のボタンが表示されます。</p>
                             ) : (
                                submission.lessonReviewDate1 ? (
                                  <div className="space-y-2">
@@ -676,7 +688,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         </Label>
                         <Input 
                             id="reviewer-name" 
-                            placeholder="採点者の氏名を入力してください" 
+                            placeholder="採点者の氏名を入力してください"
                             value={reviewerName}
                             onChange={(e) => setReviewerName(e.target.value)}
                         />
@@ -696,3 +708,4 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 }
 
     
+
