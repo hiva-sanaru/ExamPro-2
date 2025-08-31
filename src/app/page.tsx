@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Loader2, Clock3, FileText, Upload, Youtube } from "lucide-react";
+import { ArrowRight, Loader2, Clock3, FileText, Upload, Youtube, Edit } from "lucide-react";
 import { getExams } from "@/services/examService";
 import type { Exam } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -56,10 +56,8 @@ function ExamineePortal() {
 
                 <Card>
                     <CardHeader>
-                        <div>
-                            <CardTitle>受験可能な筆記試験</CardTitle>
-                            <CardDescription>{isLoading ? "読み込み中..." : exams.length > 0 ? `${exams.length} 件の試験が利用可能です。` : "現在、受験可能な筆記試験はありません。"}</CardDescription>
-                        </div>
+                        <CardTitle>受験可能な試験一覧</CardTitle>
+                        <CardDescription>{isLoading ? "読み込み中..." : exams.length > 0 ? `${exams.length} 件の試験が利用可能です。` : "現在、受験可能な試験はありません。"}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {isLoading ? (
@@ -80,8 +78,9 @@ function ExamineePortal() {
                         ) : exams.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {exams.map((exam) => {
+                                    const showLessonSubmit = exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'UrlSubmission';
                                     return (
-                                        <div key={exam.id} className="flex flex-col gap-4 rounded-lg border p-4">
+                                        <div key={exam.id} className="flex flex-col gap-4 rounded-lg border bg-card p-4">
                                             <div className="space-y-2">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <h3 className="font-semibold leading-tight">{exam.title}</h3>
@@ -100,11 +99,19 @@ function ExamineePortal() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="mt-auto flex justify-end">
-                                                <Button asChild aria-label={`${exam.title} を受験する`}>
+                                            <div className="mt-auto flex justify-end items-center gap-2">
+                                                {showLessonSubmit && (
+                                                     <Button asChild variant="outline" size="sm" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700">
+                                                        <Link href="/submit-lesson">
+                                                            <Youtube className="mr-2 h-4 w-4" />
+                                                            動画提出
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                                <Button asChild>
                                                     <Link href={`/exam/${exam.id}/start`}>
-                                                        受験する
-                                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        筆記試験を受ける
                                                     </Link>
                                                 </Button>
                                             </div>
@@ -122,37 +129,7 @@ function ExamineePortal() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-card/80 backdrop-blur-sm">
-                    <CardHeader>
-                        <CardTitle>授業動画の提出</CardTitle>
-                        <CardDescription>
-                            以下の試験では、筆記試験合格後に授業審査用の動画URLを提出する必要があります。
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                           {urlSubmissionExams.length > 0 ? (
-                                <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                                    {urlSubmissionExams.map(exam => (
-                                        <li key={exam.id}>{exam.title}</li>
-                                    ))}
-                                </ul>
-                           ) : (
-                                <p className="text-sm text-muted-foreground">現在、授業動画のURL提出が設定されている試験はありません。</p>
-                           )}
-                        </div>
-                        <div className="mt-4 flex justify-end">
-                            <Button asChild className="bg-green-600 hover:bg-green-700">
-                                <Link href="/submit-lesson">
-                                    <Upload className="mr-2 h-4 w-4" />
-                                    授業動画URLを提出する
-                                </Link>
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <footer className="text-center text-sm text-muted-foreground pt-2">
+                <footer className="text-center text-sm text-muted-foreground pt-8">
                     © {new Date().getFullYear()} SANARUスタッフ昇給試験サイト. 無断複写・転載を禁じます。
                 </footer>
             </div>
