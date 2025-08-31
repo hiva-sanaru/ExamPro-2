@@ -51,21 +51,6 @@ function ExamineePortal() {
                     </p>
                 </header>
 
-                <Card className="bg-card/80 backdrop-blur-sm">
-                    <CardHeader>
-                        <CardTitle>授業動画の提出</CardTitle>
-                        <CardDescription>筆記試験とは別に、授業審査用の動画URLをいつでも提出できます。</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Button asChild className="bg-green-600 hover:bg-green-700">
-                            <Link href="/submit-lesson">
-                                <Upload className="mr-2 h-4 w-4" />
-                                授業動画URLを提出する
-                            </Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-
                 <Card>
                     <CardHeader>
                         <div>
@@ -131,6 +116,21 @@ function ExamineePortal() {
                                 <p className="text-xs">管理者にお問い合わせください。</p>
                             </div>
                         )}
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-card/80 backdrop-blur-sm">
+                    <CardHeader>
+                        <CardTitle>授業動画の提出</CardTitle>
+                        <CardDescription>筆記試験とは別に、授業審査用の動画URLをいつでも提出できます。</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild className="bg-green-600 hover:bg-green-700">
+                            <Link href="/submit-lesson">
+                                <Upload className="mr-2 h-4 w-4" />
+                                授業動画URLを提出する
+                            </Link>
+                        </Button>
                     </CardContent>
                 </Card>
 
