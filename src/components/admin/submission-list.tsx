@@ -18,11 +18,10 @@ import { cva } from "class-variance-authority";
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import Link from "next/link";
-import { Eye, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
+import { FilePen, Loader2, Trash2 } from "lucide-react";
 import { updateSubmission, deleteSubmission } from "@/services/submissionService";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { findUserByEmployeeId } from '@/services/userService';
 
 
@@ -207,7 +206,7 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                             <div className="flex justify-end items-center gap-2">
                                 <Button variant="outline" size="icon" asChild>
                                     <Link href={`/admin/review/${submission.id}`}>
-                                        <Eye className="h-4 w-4" />
+                                        <FilePen className="h-4 w-4" />
                                         <span className="sr-only">採点</span>
                                     </Link>
                                 </Button>
