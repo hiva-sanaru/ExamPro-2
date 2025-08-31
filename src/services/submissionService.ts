@@ -1,12 +1,13 @@
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc, Timestamp, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, Timestamp, serverTimestamp, deleteDoc, query, orderBy } from 'firebase/firestore';
 import type { Submission } from '@/lib/types';
 
 const submissionsCollection = collection(db, 'submissions');
 
 export async function getSubmissions(): Promise<Submission[]> {
-    const snapshot = await getDocs(submissionsCollection);
+    const q = query(submissionsCollection, orderBy("submittedAt", "desc"));
+    const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
         const data = doc.data();
         // Ensure submittedAt is converted to Date, handling potential undefined
