@@ -104,7 +104,7 @@ export default function SubmitLessonPage() {
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-primary/5 via-transparent to-transparent p-4">
       <Card className="w-full max-w-xl">
         <CardHeader className="text-center flex flex-col items-center">
-            <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={300} height={100} priority />
+            <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={300} height={100} priority data-ai-hint="logo" />
         </CardHeader>
         <CardContent>
           <Form {...form}>

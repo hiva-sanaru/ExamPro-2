@@ -60,8 +60,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <Sidebar variant="sidebar" collapsible="icon">
                 <SidebarHeader>
                     <div className="flex items-center justify-center p-2 group-data-[collapsible=icon]:p-0.5">
-                       <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={150} height={50} className="group-data-[collapsible=icon]:hidden" />
-                       <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={32} height={32} className="hidden group-data-[collapsible=icon]:block rounded-full object-cover" />
+                       <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={150} height={50} className="group-data-[collapsible=icon]:hidden" data-ai-hint="logo" />
+                       <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={32} height={32} className="hidden group-data-[collapsible=icon]:block rounded-full object-cover" data-ai-hint="logo" />
                     </div>
                 </SidebarHeader>
                 <SidebarContent>

@@ -44,7 +44,7 @@ function ExamineePortal() {
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[320px] bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/.2),_transparent_60%)]" />
             <div className="w-full max-w-5xl space-y-8">
                 <header className="space-y-3 text-center flex flex-col items-center">
-                    <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={425} height={141} priority />
+                    <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={425} height={141} priority data-ai-hint="logo" />
                     <p className="mx-auto max-w-2xl text-muted-foreground text-base sm:text-lg">
                         受験したい筆記試験を選択するか、授業動画を提出してください。
                     </p>

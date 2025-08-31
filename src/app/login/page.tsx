@@ -7,7 +7,7 @@ export default function LoginPage() {
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-secondary/50 p-8">
       <div className="flex w-full max-w-lg flex-col items-center space-y-6">
         <div className="flex items-center space-x-3 text-primary">
-          <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={300} height={100} priority />
+          <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={300} height={100} priority data-ai-hint="logo" />
         </div>
         <LoginForm />
       </div>
