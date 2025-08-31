@@ -73,18 +73,14 @@ export default function ReviewListPage() {
             const exam = exams.find(e => e.id === submission.examId);
             const formatDate = (date: any) => {
                 if (!date) return "－";
-                // Firestore Timestamp has a toDate() method
                 const dateObj = date.toDate ? date.toDate() : new Date(date);
                 return formatInTimeZone(dateObj, 'Asia/Tokyo', "yyyy-MM-dd HH:mm", { locale: ja });
             }
-            
-            // Format employeeId to be treated as text in Excel
-            const excelEmployeeId = `="${submission.examineeId || "－"}"`;
 
             return [
                 exam?.title || "－",
                 submission.examineeName || "－",
-                excelEmployeeId,
+                `="${submission.examineeId || "－"}"`,
                 submission.examineeHeadquarters || "－",
                 formatDate(submission.submittedAt),
                 getStatusInJapanese(submission.status),
@@ -97,11 +93,11 @@ export default function ReviewListPage() {
                 submission.lessonReviewSchoolName ?? "－",
                 submission.lessonReviewClassroomName ?? "－",
             ].map(value => {
-                const str = String(value).replace('"', '""'); // Escape double quotes
-                if (str.includes(',')) {
+                const str = String(value).replace(/"/g, '""'); // Escape double quotes
+                if (String(value).includes(',')) {
                     return `"${str}"`;
                 }
-                return str;
+                return value; // Return value directly for non-comma values
             }).join(',');
         });
 
