@@ -37,9 +37,9 @@ export function ExamHeader({ title, timeLeft, questionTimeLeft }: ExamHeaderProp
                <Clock className="h-5 w-5" />
                <div className="flex flex-col items-start">
                     <span className="text-xs font-medium text-primary-foreground/80">小問残り時間</span>
-                    <span className="text-xl font-bold tracking-wider font-code">
-                        {formatTime(questionTimeLeft)}
-                    </span>
+                <span className="text-xl font-bold tracking-wider tabular-nums font-code">
+                    {formatTime(questionTimeLeft)}
+                </span>
                </div>
             </div>
           )}
@@ -50,7 +50,7 @@ export function ExamHeader({ title, timeLeft, questionTimeLeft }: ExamHeaderProp
              <Timer className="h-5 w-5" />
              <div className="flex flex-col items-start">
                 <span className="text-xs font-medium text-primary-foreground/80">試験残り時間</span>
-                <span className="text-xl font-bold tracking-wider font-code">
+                <span className="text-xl font-bold tracking-wider tabular-nums font-code">
                     {formatTime(timeLeft)}
                 </span>
              </div>

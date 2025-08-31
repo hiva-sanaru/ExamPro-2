@@ -34,7 +34,7 @@ const renderFillInTheBlank = (
                 {part && <span>{part}</span>}
                 {index < parts.length - 1 && (
                      <Input 
-                        className="inline-block w-48 h-8 border-0 border-b rounded-none focus:ring-0 px-1 align-baseline"
+                        className="inline-block w-48 h-8 border-0 border-b rounded-none focus:ring-0 focus-visible:border-accent px-1 align-baseline"
                         value={value[index] || ''}
                         onChange={(e) => onChange(index, e.target.value)}
                     />

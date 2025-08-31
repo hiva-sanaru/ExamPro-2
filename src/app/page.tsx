@@ -77,7 +77,7 @@ function ExamineePortal() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {exams.map((exam) => {
                                     return (
-                                        <div key={exam.id} className="flex flex-col gap-4 rounded-lg border p-4">
+                                        <div key={exam.id} className="flex flex-col gap-4 rounded-lg border p-4 transition-shadow hover:shadow-md">
                                             <div className="space-y-2">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <h3 className="font-semibold leading-tight">{exam.title}</h3>
