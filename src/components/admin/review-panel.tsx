@@ -71,8 +71,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const isActionDisabled = useMemo(() => {
     if (currentUser.role === 'system_administrator') return false;
     if (isPersonnelOfficeView) {
-        // PO role should be system_administrator.
-        return currentUser.role !== 'system_administrator';
+        return true; // Only system admins can act on PO view
     }
     // HQ view, check if user is hq_administrator and belongs to the submission's HQ
     if(currentUser.role === 'hq_administrator'){
@@ -121,19 +120,18 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     setManualScores(initialScores);
     setAiJustifications(initialJustifications);
     setOverallFeedback(gradeData?.justification || '');
-    setReviewerName(gradeData?.reviewerName || (reviewerRole === '本部' ? currentUser.name : ''));
+    setReviewerName(gradeData?.reviewerName || '');
 
 
     if (reviewerRole === "人事室") {
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
         setFinalOutcome(submission.finalOutcome);
     } else {
-        setReviewerName(gradeData?.reviewerName || currentUser.name || '');
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
     }
 
-  }, [submission, reviewerRole, currentUser.name]);
+  }, [submission, reviewerRole]);
 
 
   const handleManualScoreChange = (questionId: string, score: string) => {
@@ -141,9 +139,9 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     const question = exam.questions.find(q => q.id === questionId);
     if (!question) return;
 
-    if (isNaN(newScore)) {
+    if (score === '') {
         setManualScores(prev => ({...prev, [questionId]: undefined}));
-    } else if (newScore <= question.points) {
+    } else if (!isNaN(newScore) && newScore <= question.points) {
         setManualScores(prev => ({...prev, [questionId]: newScore}));
     }
   }
@@ -310,7 +308,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         dataToUpdate.hqGrade = {
             score: totalScore,
             justification: overallFeedback,
-            reviewer: currentUser.name,
+            reviewer: currentUser.id,
             reviewerName: reviewerName,
             questionGrades: questionGrades
         };
@@ -341,8 +339,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         const poQuestionGrades: { [key: string]: QuestionGrade } = {};
         for (const qId in manualScores) {
             const grade: QuestionGrade = { score: manualScores[qId] ?? 0 };
-            if (aiJustifications[qId]) {
-                grade.justification = aiJustifications[qId];
+             if (aiJustifications[qId]) {
+              grade.justification = aiJustifications[qId];
             }
             poQuestionGrades[qId] = grade;
         }
@@ -350,7 +348,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         dataToUpdate.poGrade = {
             score: totalScore,
             justification: overallFeedback,
-            reviewer: currentUser.name,
+            reviewer: currentUser.id,
             reviewerName: reviewerName,
             questionGrades: poQuestionGrades
         };
@@ -696,3 +694,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
+
+    
