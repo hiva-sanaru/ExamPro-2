@@ -36,7 +36,7 @@ interface GradingResult {
 }
 
 interface ManualScores {
-    [questionId: string]: number;
+    [questionId: string]: number | undefined;
 }
 
 interface AiJustifications {
@@ -239,7 +239,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
               const questionGrades: { [key: string]: QuestionGrade } = {};
               for (const qId in newManualScores) {
                   questionGrades[qId] = {
-                      score: newManualScores[qId],
+                      score: newManualScores[qId] ?? 0,
                       justification: newAiJustifications[qId] || undefined
                   };
               }
@@ -276,7 +276,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
     const questionGrades: { [key: string]: QuestionGrade } = {};
     for (const qId in manualScores) {
         questionGrades[qId] = {
-            score: manualScores[qId],
+            score: manualScores[qId] ?? 0,
             justification: aiJustifications[qId] || undefined
         };
     }
