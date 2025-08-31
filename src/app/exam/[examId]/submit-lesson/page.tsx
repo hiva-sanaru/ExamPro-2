@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams, notFound } from 'next/navigation';
+import { useRouter, useParams, useSearchParams, notFound } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,7 +24,7 @@ type UrlSubmissionFormValues = z.infer<typeof urlSubmissionSchema>;
 export default function SubmitLessonUrlPage() {
   const router = useRouter();
   const params = useParams();
-  const examId = params.examId as string;
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [submission, setSubmission] = useState<Submission | null>(null);
@@ -39,12 +39,7 @@ export default function SubmitLessonUrlPage() {
 
    useEffect(() => {
     const fetchSubmission = async () => {
-      // In a real app, you'd get the submissionId based on the logged-in user and examId.
-      // For this implementation, we'll assume there's a mechanism to retrieve it.
-      // This is a placeholder for fetching the correct submission.
-      // We will need to enhance this later. For now, we can't proceed without a submission.
-      // Let's assume the user is redirected here with submissionId in query params for now.
-      const submissionId = new URLSearchParams(window.location.search).get('submissionId');
+      const submissionId = searchParams.get('submissionId');
 
       if (!submissionId) {
         toast({ title: "エラー", description: "対象の提出情報が見つかりません。", variant: "destructive"});
@@ -55,7 +50,7 @@ export default function SubmitLessonUrlPage() {
       try {
         const sub = await getSubmission(submissionId);
         if (!sub || sub.status !== '授業審査待ち') {
-           toast({ title: "不正なアクセス", description: "この試験はURL提出の対象外です。", variant: "destructive"});
+           toast({ title: "不正なアクセス", description: "この試験はURL提出の対象外か、既に提出済みです。", variant: "destructive"});
            router.push('/');
            return;
         }
@@ -68,7 +63,7 @@ export default function SubmitLessonUrlPage() {
       }
     };
     fetchSubmission();
-  }, [examId, router, toast]);
+  }, [router, searchParams, toast]);
 
   const onSubmit = async (data: UrlSubmissionFormValues) => {
     if (!submission) return;
@@ -76,13 +71,16 @@ export default function SubmitLessonUrlPage() {
     try {
       await updateSubmission(submission.id, { 
         lessonReviewUrl: data.lessonReviewUrl,
-        status: 'Completed' // or another status like 'UrlSubmitted'
+        status: '人事確認中'
       });
       toast({
         title: "提出完了",
         description: "授業審査の動画URLを正常に提出しました。",
       });
+      // Clear examinee info to prevent accidental resubmission under same identity
+      localStorage.removeItem('exam-examinee-info');
       router.push('/');
+      router.refresh();
     } catch (error) {
       console.error("Failed to submit URL", error);
       toast({
