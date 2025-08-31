@@ -124,7 +124,6 @@ export default function AdminUsersPage() {
                                     <SelectItem value="all">すべての役割</SelectItem>
                                     <SelectItem value="system_administrator">システム管理者</SelectItem>
                                     <SelectItem value="hq_administrator">本部管理者</SelectItem>
-                                    <SelectItem value="examinee">受験者</SelectItem>
                                 </SelectContent>
                             </Select>
                             <Select value={hqFilter} onValueChange={setHqFilter}>

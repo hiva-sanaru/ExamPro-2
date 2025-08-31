@@ -20,7 +20,7 @@ const userSchema = (isEditing: boolean) => z.object({
     password: isEditing 
         ? z.string().min(8, { message: "パスワードは8文字以上である必要があります。" }).optional().or(z.literal(''))
         : z.string().min(8, { message: "パスワードは8文字以上である必要があります。" }),
-    role: z.enum(["system_administrator", "hq_administrator", "examinee"], {
+    role: z.enum(["system_administrator", "hq_administrator"], {
         required_error: "役割を選択する必要があります。",
     }),
     headquarters: z.string().optional(),
@@ -56,7 +56,7 @@ export function AddUserForm({ user, onFinished, headquartersList, onClose }: Add
       name: user?.name || "",
       employeeId: user?.employeeId || "",
       password: "",
-      role: user?.role || "examinee",
+      role: user?.role === 'examinee' ? 'hq_administrator' : user?.role || "hq_administrator",
       headquarters: user?.headquarters || "",
     },
   });
@@ -165,7 +165,6 @@ export function AddUserForm({ user, onFinished, headquartersList, onClose }: Add
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="examinee">受験者</SelectItem>
                   <SelectItem value="hq_administrator">本部管理者</SelectItem>
                   <SelectItem value="system_administrator">システム管理者</SelectItem>
                 </SelectContent>
