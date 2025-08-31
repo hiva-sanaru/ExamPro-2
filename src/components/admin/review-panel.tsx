@@ -120,8 +120,13 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
   const handleManualScoreChange = (questionId: string, score: string) => {
     const newScore = Number(score);
     const question = exam.questions.find(q => q.id === questionId);
-    if (!question || newScore > question.points) return;
-    setManualScores(prev => ({...prev, [questionId]: newScore}));
+    if (!question) return;
+
+    if (isNaN(newScore)) {
+        setManualScores(prev => ({...prev, [questionId]: undefined}));
+    } else if (newScore <= question.points) {
+        setManualScores(prev => ({...prev, [questionId]: newScore}));
+    }
   }
 
   const getAnswerForQuestion = (questionId: string, subQuestionId?: string): string => {
@@ -562,7 +567,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                                             </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0">
-                                                <Calendar mode="single" selected={date1} onSelect={setDate1} initialFocus />
+                                                <Calendar mode="single" selected={date1} onSelect={setDate1} initialFocus disabled={{ before: new Date() }}/>
                                             </PopoverContent>
                                         </Popover>
                                         <Input type="time" value={time1} onChange={e => setTime1(e.target.value)} className="w-32 bg-white" />
@@ -585,7 +590,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                                             </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0">
-                                                <Calendar mode="single" selected={date2} onSelect={setDate2} />
+                                                <Calendar mode="single" selected={date2} onSelect={setDate2} disabled={{ before: new Date() }} />
                                             </PopoverContent>
                                         </Popover>
                                         <Input type="time" value={time2} onChange={e => setTime2(e.target.value)} className="w-32 bg-white"/>
