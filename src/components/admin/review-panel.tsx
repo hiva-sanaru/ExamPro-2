@@ -70,10 +70,12 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
   const isActionDisabled = useMemo(() => {
     if (currentUser.role === 'system_administrator') return false; // Sys admin can do anything
-    if (isPersonnelOfficeView && currentUser.role !== 'system_administrator') return true;
-    if (!isPersonnelOfficeView && currentUser.role !== 'hq_administrator') return true;
-    return false;
-  }, [currentUser.role, isPersonnelOfficeView]);
+    if (isPersonnelOfficeView) {
+        return currentUser.role !== 'system_administrator';
+    }
+    // HQ view
+    return currentUser.role !== 'hq_administrator' || submission.examineeHeadquarters !== currentUser.headquarters;
+  }, [currentUser.role, currentUser.headquarters, isPersonnelOfficeView, submission.examineeHeadquarters]);
 
 
   const totalScore = useMemo(() => {
@@ -331,12 +333,20 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
         newStatus = "人事確認中";
     } else { // Personnel Office
+        const poQuestionGrades: { [key: string]: QuestionGrade } = {};
+        for (const qId in manualScores) {
+            poQuestionGrades[qId] = { score: manualScores[qId] ?? 0 };
+            if (aiJustifications[qId]) {
+              poQuestionGrades[qId].justification = aiJustifications[qId];
+            }
+        }
+
         dataToUpdate.poGrade = {
             score: totalScore,
             justification: overallFeedback,
             reviewer: currentUser.name,
             reviewerName: reviewerName,
-            questionGrades: questionGrades
+            questionGrades: poQuestionGrades
         };
         dataToUpdate.finalScore = totalScore;
         dataToUpdate.finalOutcome = finalOutcome;
