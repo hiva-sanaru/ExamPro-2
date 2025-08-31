@@ -100,13 +100,13 @@ export function ExamList({ isAdmin }: ExamListProps) {
       <Table>
         <TableHeader>
           <TableRow className="bg-primary hover:bg-primary/90">
-            <TableHead className="text-primary-foreground whitespace-nowrap">タイトル</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">ステータス</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">タイプ</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">問題数</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">合計点</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">時間</TableHead>
-            <TableHead className="text-right text-primary-foreground whitespace-nowrap">アクション</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">タイトル</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">ステータス</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">タイプ</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">問題数</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">合計点</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">時間</TableHead>
+            <TableHead className="text-right text-primary-foreground whitespace-nowrap text-center">アクション</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
