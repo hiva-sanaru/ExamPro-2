@@ -108,7 +108,7 @@ function ExamineePortal() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="mt-auto">
+                                            <div className="mt-auto flex justify-end">
                                                 {needsUrlSubmission ? (
                                                      <Button asChild aria-label={`${exam.title} のURLを提出する`} className="bg-green-600 hover:bg-green-700">
                                                         <Link href={`/exam/${exam.id}/submit-lesson?submissionId=${submissionForExam.id}`}>
