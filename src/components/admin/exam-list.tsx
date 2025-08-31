@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Edit, Trash2, Eye, Loader2, Tag } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Edit, Trash2, Eye, Loader2, Tag } from "lucide-react";
 import { cva } from "class-variance-authority";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -128,46 +128,62 @@ export function ExamList({ isAdmin }: ExamListProps) {
               <TableCell>{exam.totalPoints} 点</TableCell>
               <TableCell>{exam.duration} 分</TableCell>
               <TableCell className="text-right">
-                <AlertDialog>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">アクション</span>
+                <div className="flex items-center justify-end gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link href={`/exam/${exam.id}`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">表示</span>
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent>表示</TooltipContent>
+                  </Tooltip>
+                  
+                  {isAdmin && (
+                    <>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link href={`/admin/create-exam?examId=${exam.id}`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">編集</span>
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                               <Link href={`/exam/${exam.id}`}><Eye className="mr-2 h-4 w-4"/>表示</Link>
-                            </DropdownMenuItem>
-                            {isAdmin && (
-                              <>
-                                <DropdownMenuItem asChild>
-                                  <Link href={`/admin/create-exam?examId=${exam.id}`}><Edit className="mr-2 h-4 w-4"/>編集</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <AlertDialogTrigger asChild>
-                                    <DropdownMenuItem className="text-destructive hover:!text-destructive focus:!text-destructive" onSelect={(e) => e.preventDefault()}>
-                                        <Trash2 className="mr-2 h-4 w-4"/>削除
-                                    </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                              </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent>編集</TooltipContent>
+                      </Tooltip>
+                      
+                      <AlertDialog>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">削除</span>
+                              </Button>
+                            </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>削除</TooltipContent>
+                        </Tooltip>
+                        
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
                             <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
                             <AlertDialogDescription>
-                                この操作は元に戻すことはできません。試験「{exam.title}」と関連するすべてのデータが完全に削除されます。
+                              この操作は元に戻すことはできません。試験「{exam.title}」と関連するすべてのデータが完全に削除されます。
                             </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
                             <AlertDialogCancel>キャンセル</AlertDialogCancel>
                             <AlertDialogAction onClick={() => handleDelete(exam.id, exam.title)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}
