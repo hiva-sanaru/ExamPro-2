@@ -204,39 +204,34 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                             />
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                             <AlertDialog>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon">
-                                            <MoreHorizontal className="h-4 w-4" />
-                                            <span className="sr-only">アクション</span>
+                            <div className="flex justify-end items-center gap-2">
+                                <Button variant="outline" size="icon" asChild>
+                                    <Link href={`/admin/review/${submission.id}`}>
+                                        <Eye className="h-4 w-4" />
+                                        <span className="sr-only">採点</span>
+                                    </Link>
+                                </Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="icon">
+                                            <Trash2 className="h-4 w-4" />
+                                            <span className="sr-only">削除</span>
                                         </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem asChild>
-                                           <Link href={`/admin/review/${submission.id}`}><Eye className="mr-2 h-4 w-4"/>採点</Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <AlertDialogTrigger asChild>
-                                            <DropdownMenuItem className="text-destructive hover:!text-destructive focus:!text-destructive" onSelect={(e) => e.preventDefault()}>
-                                                <Trash2 className="mr-2 h-4 w-4"/>削除
-                                            </DropdownMenuItem>
-                                        </AlertDialogTrigger>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            この操作は元に戻すことはできません。この提出物と関連するすべての採点データが完全に削除されます。
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDelete(submission.id)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                この操作は元に戻すことはできません。この提出物と関連するすべての採点データが完全に削除されます。
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDelete(submission.id)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </div>
                         </TableCell>
                     </TableRow>
                 )
