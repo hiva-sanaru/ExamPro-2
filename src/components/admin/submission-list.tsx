@@ -23,6 +23,7 @@ import { updateSubmission, deleteSubmission } from "@/services/submissionService
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { findUserByEmployeeId } from '@/services/userService';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 type SortableKeys = keyof Submission | 'examTitle' | 'statusName';
 
@@ -210,140 +211,149 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
     )
 
   return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-primary hover:bg-primary/90">
-            <TableHead className="text-primary-foreground whitespace-nowrap">
-                <Button variant="ghost" onClick={() => requestSort('examTitle')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
-                    試験名 {getSortIndicator('examTitle')}
-                </Button>
-            </TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">
-                 <Button variant="ghost" onClick={() => requestSort('examineeName')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
-                    受験者名 {getSortIndicator('examineeName')}
-                </Button>
-            </TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">
-                 <Button variant="ghost" onClick={() => requestSort('examineeHeadquarters')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
-                    本部 {getSortIndicator('examineeHeadquarters')}
-                </Button>
-            </TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap text-center">
-                 <Button variant="ghost" onClick={() => requestSort('submittedAt')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
-                    提出日時 {getSortIndicator('submittedAt')}
-                </Button>
-            </TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap text-center">
-                 <Button variant="ghost" onClick={() => requestSort('statusName')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
-                    ステータス {getSortIndicator('statusName')}
-                </Button>
-            </TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap text-center">
-                <Button variant="ghost" onClick={() => requestSort('lessonReviewUrl')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
-                    授業審査URL {getSortIndicator('lessonReviewUrl')}
-                </Button>
-            </TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap text-center">
-                <Button variant="ghost" onClick={() => requestSort('resultCommunicated')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
-                    結果伝達 {getSortIndicator('resultCommunicated')}
-                </Button>
-            </TableHead>
-            <TableHead className="text-right text-primary-foreground whitespace-nowrap">アクション</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
-                    <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
-                </TableCell>
+    <TooltipProvider>
+        <div className="rounded-lg border">
+        <Table>
+            <TableHeader>
+            <TableRow className="bg-primary hover:bg-primary/90">
+                <TableHead className="text-primary-foreground whitespace-nowrap">
+                    <Button variant="ghost" onClick={() => requestSort('examTitle')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                        試験名 {getSortIndicator('examTitle')}
+                    </Button>
+                </TableHead>
+                <TableHead className="text-primary-foreground whitespace-nowrap">
+                    <Button variant="ghost" onClick={() => requestSort('examineeName')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                        受験者名 {getSortIndicator('examineeName')}
+                    </Button>
+                </TableHead>
+                <TableHead className="text-primary-foreground whitespace-nowrap">
+                    <Button variant="ghost" onClick={() => requestSort('examineeHeadquarters')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                        本部 {getSortIndicator('examineeHeadquarters')}
+                    </Button>
+                </TableHead>
+                <TableHead className="text-primary-foreground whitespace-nowrap text-center">
+                    <Button variant="ghost" onClick={() => requestSort('submittedAt')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                        提出日時 {getSortIndicator('submittedAt')}
+                    </Button>
+                </TableHead>
+                <TableHead className="text-primary-foreground whitespace-nowrap text-center">
+                    <Button variant="ghost" onClick={() => requestSort('statusName')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                        ステータス {getSortIndicator('statusName')}
+                    </Button>
+                </TableHead>
+                <TableHead className="text-primary-foreground whitespace-nowrap text-center">
+                    <Button variant="ghost" onClick={() => requestSort('lessonReviewUrl')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                        URL {getSortIndicator('lessonReviewUrl')}
+                    </Button>
+                </TableHead>
+                <TableHead className="text-primary-foreground whitespace-nowrap text-center">
+                    <Button variant="ghost" onClick={() => requestSort('resultCommunicated')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                        結果伝達 {getSortIndicator('resultCommunicated')}
+                    </Button>
+                </TableHead>
+                <TableHead className="text-right text-primary-foreground whitespace-nowrap">アクション</TableHead>
             </TableRow>
-          ) : sortedSubmissions.length === 0 ? (
-             <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
-                    提出物はまだありません。
-                </TableCell>
-            </TableRow>
-          ) : (
-            sortedSubmissions.map((submission) => {
-                const exam = examsMap[submission.examId];
-                const statusName = getStatusName(submission);
-                return (
-                    <TableRow key={submission.id}>
-                        <TableCell className="font-medium whitespace-nowrap">{exam?.title || '－'}</TableCell>
-                        <TableCell className="whitespace-nowrap">{submission.examineeName || '－'}</TableCell>
-                        <TableCell className="whitespace-nowrap">{submission.examineeHeadquarters?.replace('本部', '') || '－'}</TableCell>
-                        <TableCell className="whitespace-nowrap text-center">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd HH:mm", { locale: ja })}</TableCell>
-                        <TableCell className="text-center whitespace-nowrap">
-                            <Badge variant="outline" className={badgeVariants({ status: statusName })}>
-                                {statusName}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-center whitespace-nowrap">
-                          {submission.lessonReviewUrl ? (
-                            <Button variant="ghost" size="icon" asChild>
-                              <a href={submission.lessonReviewUrl} target="_blank" rel="noopener noreferrer">
-                                <LinkIcon className="h-4 w-4 text-blue-500" />
-                              </a>
-                            </Button>
-                          ) : (
-                            '－'
-                          )}
-                        </TableCell>
-                         <TableCell className="text-center whitespace-nowrap">
-                             <Checkbox 
-                                id={`comm-${submission.id}`}
-                                checked={!!submission.resultCommunicated}
-                                onCheckedChange={() => handleCheckboxChange(submission)}
-                                disabled={currentUser?.role !== 'system_administrator'}
-                                aria-label="結果伝達済み"
-                            />
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end items-center gap-2">
-                            <Button variant="outline" size="icon" asChild>
-                              <Link href={`/admin/review/${submission.id}`}>
-                                <FilePen className="h-4 w-4" />
-                                <span className="sr-only">採点</span>
-                              </Link>
-                            </Button>
-                            {currentUser?.role === 'system_administrator' && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="destructive" size="icon">
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">削除</span>
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      この操作は元に戻すことはできません。この提出物と関連するすべての採点データが完全に削除されます。
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(submission.id)}
-                                      className="bg-destructive hover:bg-destructive/90"
-                                    >
-                                      削除
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+            </TableHeader>
+            <TableBody>
+            {isLoading ? (
+                <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center">
+                        <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                    </TableCell>
+                </TableRow>
+            ) : sortedSubmissions.length === 0 ? (
+                <TableRow>
+                    <TableCell colSpan={8} className="h-24 text-center">
+                        提出物はまだありません。
+                    </TableCell>
+                </TableRow>
+            ) : (
+                sortedSubmissions.map((submission) => {
+                    const exam = examsMap[submission.examId];
+                    const statusName = getStatusName(submission);
+                    return (
+                        <TableRow key={submission.id}>
+                            <TableCell className="font-medium whitespace-nowrap">{exam?.title || '－'}</TableCell>
+                            <TableCell className="whitespace-nowrap">{submission.examineeName || '－'}</TableCell>
+                            <TableCell className="whitespace-nowrap">{submission.examineeHeadquarters?.replace('本部', '') || '－'}</TableCell>
+                            <TableCell className="whitespace-nowrap text-center">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd HH:mm", { locale: ja })}</TableCell>
+                            <TableCell className="text-center whitespace-nowrap">
+                                <Badge variant="outline" className={badgeVariants({ status: statusName })}>
+                                    {statusName}
+                                </Badge>
+                            </TableCell>
+                            <TableCell className="text-center whitespace-nowrap">
+                            {submission.lessonReviewUrl ? (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" asChild>
+                                            <a href={submission.lessonReviewUrl} target="_blank" rel="noopener noreferrer">
+                                                <LinkIcon className="h-4 w-4 text-blue-500" />
+                                            </a>
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{submission.lessonReviewUrl}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                '－'
                             )}
-                          </div>
-                        </TableCell>
-                    </TableRow>
-                )
-            })
-          )}
-        </TableBody>
-      </Table>
-    </div>
+                            </TableCell>
+                            <TableCell className="text-center whitespace-nowrap">
+                                <Checkbox 
+                                    id={`comm-${submission.id}`}
+                                    checked={!!submission.resultCommunicated}
+                                    onCheckedChange={() => handleCheckboxChange(submission)}
+                                    disabled={currentUser?.role !== 'system_administrator'}
+                                    aria-label="結果伝達済み"
+                                />
+                            </TableCell>
+                            <TableCell className="text-right">
+                            <div className="flex justify-end items-center gap-2">
+                                <Button variant="outline" size="icon" asChild>
+                                <Link href={`/admin/review/${submission.id}`}>
+                                    <FilePen className="h-4 w-4" />
+                                    <span className="sr-only">採点</span>
+                                </Link>
+                                </Button>
+                                {currentUser?.role === 'system_administrator' && (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon">
+                                        <Trash2 className="h-4 w-4" />
+                                        <span className="sr-only">削除</span>
+                                    </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                        この操作は元に戻すことはできません。この提出物と関連するすべての採点データが完全に削除されます。
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                        <AlertDialogAction
+                                        onClick={() => handleDelete(submission.id)}
+                                        className="bg-destructive hover:bg-destructive/90"
+                                        >
+                                        削除
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                                )}
+                            </div>
+                            </TableCell>
+                        </TableRow>
+                    )
+                })
+            )}
+            </TableBody>
+        </Table>
+        </div>
+    </TooltipProvider>
   );
 }
 
