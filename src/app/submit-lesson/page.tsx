@@ -12,14 +12,16 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Youtube, Send, User, Hash, Building } from 'lucide-react';
+import { Loader2, Youtube, Send, User, Hash, Building, FileText } from 'lucide-react';
 import { addSubmission } from '@/services/submissionService';
 import { getHeadquarters } from '@/services/headquartersService';
-import type { Headquarters } from '@/lib/types';
+import { getExams } from '@/services/examService';
+import type { Headquarters, Exam } from '@/lib/types';
 import Image from 'next/image';
 
 
 const lessonSubmissionSchema = z.object({
+  examId: z.string({ required_error: "試験を選択してください。"}).min(1, { message: "試験を選択してください。" }),
   employeeId: z.string().length(8, { message: "社員番号は8桁である必要があります。"}).regex(/^[0-9]+$/, { message: "社員番号は半角数字でなければなりません。"}),
   name: z.string().min(1, { message: "氏名は必須です。" }),
   headquarters: z.string({ required_error: "本部を選択してください。"}).min(1, { message: "本部を選択してください。"}),
@@ -33,11 +35,13 @@ export default function SubmitLessonPage() {
   const { toast } = useToast();
   
   const [headquarters, setHeadquarters] = useState<Headquarters[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<LessonSubmissionFormValues>({
     resolver: zodResolver(lessonSubmissionSchema),
     defaultValues: {
+      examId: '',
       employeeId: '',
       name: '',
       headquarters: '',
@@ -46,25 +50,33 @@ export default function SubmitLessonPage() {
   });
 
    useEffect(() => {
-    const fetchHqs = async () => {
+    const fetchData = async () => {
       try {
-        const hqData = await getHeadquarters();
+        const [hqData, examData] = await Promise.all([
+            getHeadquarters(),
+            getExams()
+        ]);
         setHeadquarters(hqData);
+        setExams(examData.filter(e => 
+            e.status === 'Published' && 
+            e.type === 'WrittenAndInterview' && 
+            e.lessonReviewType === 'UrlSubmission'
+        ));
       } catch (error) {
-        console.error("Failed to fetch headquarters", error);
+        console.error("Failed to fetch data", error);
         toast({ title: "エラー", description: "データの読み込みに失敗しました。", variant: "destructive"});
       } finally {
         setIsLoading(false);
       }
     };
-    fetchHqs();
+    fetchData();
   }, [toast]);
 
   const onSubmit = async (data: LessonSubmissionFormValues) => {
     setIsLoading(true);
     try {
       await addSubmission({
-        examId: 'lesson-review-only', // Special ID for URL-only submissions
+        examId: data.examId,
         examineeId: data.employeeId,
         examineeName: data.name,
         examineeHeadquarters: data.headquarters,
@@ -91,7 +103,7 @@ export default function SubmitLessonPage() {
     }
   };
   
-  if (isLoading && headquarters.length === 0) {
+  if (isLoading && (headquarters.length === 0 || exams.length === 0)) {
     return (
         <div className="flex justify-center items-center h-screen text-muted-foreground">
             <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -105,10 +117,42 @@ export default function SubmitLessonPage() {
       <Card className="w-full max-w-xl">
         <CardHeader className="text-center flex flex-col items-center">
             <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={300} height={100} priority data-ai-hint="logo" />
+            <CardTitle className="font-headline text-2xl">授業動画URLの提出</CardTitle>
+            <CardDescription>情報を入力し、提出する授業動画のURLを送信してください。</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+               <FormField
+                control={form.control}
+                name="examId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>試験名</FormLabel>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="pl-10">
+                            <SelectValue placeholder="提出先の試験を選択してください" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {exams.map(exam => (
+                            <SelectItem key={exam.id} value={exam.id}>{exam.title}</SelectItem>
+                          ))}
+                           {exams.length === 0 && (
+                            <SelectItem value="no-exam" disabled>
+                              URL提出可能な試験がありません
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
                <FormField
                 control={form.control}
                 name="employeeId"

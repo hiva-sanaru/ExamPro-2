@@ -64,5 +64,3 @@ export async function deleteSubmission(submissionId: string): Promise<void> {
     const docRef = doc(db, 'submissions', submissionId);
     await deleteDoc(docRef);
 }
-
-    
