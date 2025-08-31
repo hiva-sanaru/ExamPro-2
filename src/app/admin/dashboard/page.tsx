@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExamList } from "@/components/admin/exam-list";
-import { PlusCircle, Download, Loader2, FilePen, CheckSquare, Users, FileText } from "lucide-react";
+import { PlusCircle, Download, Loader2, FilePen, CheckSquare, Youtube, FileText } from "lucide-react";
 import Link from "next/link";
 import { getUsers, findUserByEmployeeId } from "@/services/userService";
 import { getExams } from "@/services/examService";
@@ -51,11 +51,11 @@ export default function AdminDashboardPage() {
     }, []);
 
     const dashboardStats = useMemo(() => {
-        const ungradedSubmissions = submissions.filter(s => s.status === 'Submitted').length;
-        const pendingReviewSubmissions = submissions.filter(s => s.status === 'Grading').length;
-        const examineeCount = users.filter(u => u.role === 'examinee').length;
-        return { ungradedSubmissions, pendingReviewSubmissions, examineeCount };
-    }, [submissions, users]);
+        const ungradedSubmissions = submissions.filter(s => s.status === '本部採点中').length;
+        const pendingReviewSubmissions = submissions.filter(s => s.status === '人事確認中').length;
+        const pendingVideoSubmissions = submissions.filter(s => s.status === '授業審査待ち').length;
+        return { ungradedSubmissions, pendingReviewSubmissions, pendingVideoSubmissions };
+    }, [submissions]);
 
     const handleBackup = () => {
         const backupData = {
@@ -94,8 +94,8 @@ export default function AdminDashboardPage() {
                         <CardTitle className="text-sm font-medium">合計試験数</CardTitle>
                         <FileText className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                         {isLoading ? <div className="h-8 w-12 bg-muted rounded animate-pulse" /> : <div className="text-2xl font-bold">{exams.length}</div> }
+                    <CardContent className="text-center">
+                         {isLoading ? <div className="h-8 w-12 bg-muted rounded animate-pulse mx-auto" /> : <div className="text-2xl font-bold">{exams.length}</div> }
                         <p className="text-xs text-muted-foreground">下書きを含む</p>
                     </CardContent>
                 </Card>
@@ -104,8 +104,8 @@ export default function AdminDashboardPage() {
                         <CardTitle className="text-sm font-medium">未採点の提出</CardTitle>
                         <FilePen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        {isLoading ? <div className="h-8 w-12 bg-muted rounded animate-pulse" /> : <div className="text-2xl font-bold">{dashboardStats.ungradedSubmissions}</div> }
+                    <CardContent className="text-center">
+                        {isLoading ? <div className="h-8 w-12 bg-muted rounded animate-pulse mx-auto" /> : <div className="text-2xl font-bold">{dashboardStats.ungradedSubmissions}</div> }
                         <p className="text-xs text-muted-foreground">本部の採点待ち</p>
                     </CardContent>
                 </Card>
@@ -114,19 +114,19 @@ export default function AdminDashboardPage() {
                         <CardTitle className="text-sm font-medium">レビュー待ちの提出</CardTitle>
                         <CheckSquare className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        {isLoading ? <div className="h-8 w-12 bg-muted rounded animate-pulse" /> : <div className="text-2xl font-bold">{dashboardStats.pendingReviewSubmissions}</div> }
+                    <CardContent className="text-center">
+                        {isLoading ? <div className="h-8 w-12 bg-muted rounded animate-pulse mx-auto" /> : <div className="text-2xl font-bold">{dashboardStats.pendingReviewSubmissions}</div> }
                         <p className="text-xs text-muted-foreground">人事室のレビュー待ち</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">アクティブな受験者</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">レビュー待ちの動画</CardTitle>
+                        <Youtube className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        {isLoading ? <div className="h-8 w-12 bg-muted rounded animate-pulse" /> : <div className="text-2xl font-bold">+{dashboardStats.examineeCount}</div> }
-                        <p className="text-xs text-muted-foreground">登録済みの受験者</p>
+                    <CardContent className="text-center">
+                        {isLoading ? <div className="h-8 w-12 bg-muted rounded animate-pulse mx-auto" /> : <div className="text-2xl font-bold">{dashboardStats.pendingVideoSubmissions}</div> }
+                        <p className="text-xs text-muted-foreground">授業審査の動画提出待ち</p>
                     </CardContent>
                 </Card>
             </div>
