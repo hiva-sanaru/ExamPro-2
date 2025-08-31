@@ -8,12 +8,15 @@ import { Suspense, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { Exam } from "@/lib/types";
 
-function ExamPageContent({ examId }: { examId: string }) {
+function ExamPageContent() {
   const router = useRouter();
+  const params = useParams();
+  const examId = params.examId as string;
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!examId) return;
     const examineeInfo = localStorage.getItem(`exam-examinee-info`);
     if (!examineeInfo) {
       router.replace(`/exam/${examId}/start`);
@@ -51,10 +54,10 @@ function ExamPageContent({ examId }: { examId: string }) {
 }
 
 
-export default function ExamPage({ params }: { params: { examId: string } }) {
+export default function ExamPage() {
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
-      <ExamPageContent examId={params.examId} />
+      <ExamPageContent />
     </Suspense>
   );
 }
