@@ -7,21 +7,38 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Loader2, Clock3, FileText, Upload } from "lucide-react";
+import { ArrowRight, Loader2, Clock3, FileText, Upload, Search, Hash } from "lucide-react";
 import { getExams } from "@/services/examService";
-import { getSubmissions } from "@/services/submissionService"; // Import submission service
-import type { Exam, Submission, ExamineeInfo } from "@/lib/types"; // Import submission type
+import { getSubmissions } from "@/services/submissionService";
+import type { Exam, Submission } from "@/lib/types";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+
 
 function ExamineePortal() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [submissions, setSubmissions] = useState<Submission[]>([]);
-    const [examineeInfo, setExamineeInfo] = useState<ExamineeInfo | null>(null);
+    const [employeeIdInput, setEmployeeIdInput] = useState('');
+    const [queriedExamineeId, setQueriedExamineeId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
+        // On initial load, try to get employeeId from localStorage for convenience
         const info = localStorage.getItem('exam-examinee-info');
         if (info) {
-            setExamineeInfo(JSON.parse(info));
+            try {
+                const parsedInfo = JSON.parse(info);
+                if(parsedInfo.employeeId) {
+                    setEmployeeIdInput(parsedInfo.employeeId);
+                    setQueriedExamineeId(parsedInfo.employeeId);
+                }
+            } catch(e) {
+                console.error("Could not parse examinee info from localStorage", e);
+                localStorage.removeItem('exam-examinee-info'); // Clear corrupted data
+            }
         }
 
         const fetchData = async () => {
@@ -37,15 +54,39 @@ function ExamineePortal() {
 
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
+                 toast({
+                    title: "エラー",
+                    description: "データの読み込みに失敗しました。",
+                    variant: "destructive"
+                });
             } finally {
                 setIsLoading(false);
             }
         }
         fetchData();
-    }, []);
+    }, [toast]);
+    
+    const handleCheckStatus = () => {
+        setIsCheckingStatus(true);
+        if (employeeIdInput && employeeIdInput.length === 8) {
+            setQueriedExamineeId(employeeIdInput);
+            toast({
+                title: "状況確認",
+                description: `社員番号: ${employeeIdInput} の受験状況を表示します。`,
+            });
+        } else {
+             toast({
+                title: "入力エラー",
+                description: "有効な8桁の社員番号を入力してください。",
+                variant: "destructive"
+            });
+        }
+        setIsCheckingStatus(false);
+    }
 
-    const userSubmissions = examineeInfo 
-      ? submissions.filter(s => s.examineeId === examineeInfo.employeeId)
+
+    const userSubmissions = queriedExamineeId
+      ? submissions.filter(s => s.examineeId === queriedExamineeId)
       : [];
 
     return (
@@ -61,24 +102,55 @@ function ExamineePortal() {
                     </p>
                 </header>
 
+                <Card className="bg-card/80 backdrop-blur-sm">
+                    <CardHeader>
+                        <CardTitle>受験状況の確認</CardTitle>
+                        <CardDescription>URL提出など、次のステップに進むには社員番号を入力して状況を確認してください。</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col sm:flex-row gap-4 max-w-md">
+                           <div className="flex-grow space-y-2">
+                                <Label htmlFor="employeeId">社員番号</Label>
+                                 <div className="relative">
+                                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        id="employeeId"
+                                        value={employeeIdInput}
+                                        onChange={(e) => setEmployeeIdInput(e.target.value)}
+                                        placeholder="8桁の社員番号"
+                                        maxLength={8}
+                                        className="pl-10"
+                                    />
+                                </div>
+                           </div>
+                            <Button onClick={handleCheckStatus} disabled={isCheckingStatus} className="self-end">
+                                {isCheckingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                                状況を確認
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader>
                         <div>
                             <CardTitle>受験可能な試験</CardTitle>
-                            <CardDescription>{exams.length} 件の試験が利用可能です。</CardDescription>
+                            <CardDescription>{isLoading ? "読み込み中..." : exams.length > 0 ? `${exams.length} 件の試験が利用可能です。` : "現在、受験可能な試験はありません。"}</CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent>
                         {isLoading ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {[...Array(4)].map((_, i) => (
-                                    <div key={i} className="rounded-lg border p-4">
-                                        <Skeleton className="h-6 w-3/4 mb-3" />
-                                        <div className="flex items-center gap-3 text-muted-foreground">
-                                            <Skeleton className="h-4 w-16" />
+                                {[...Array(2)].map((_, i) => (
+                                    <div key={i} className="rounded-lg border p-4 space-y-3">
+                                        <Skeleton className="h-6 w-3/4" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-4 w-24" />
                                             <Skeleton className="h-4 w-20" />
                                         </div>
-                                        <Skeleton className="mt-4 h-9 w-24" />
+                                        <div className="flex justify-end pt-2">
+                                          <Skeleton className="h-9 w-28" />
+                                        </div>
                                     </div>
                                 ))}
                             </div>
