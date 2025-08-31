@@ -22,11 +22,12 @@ import { useRouter } from "next/navigation";
 
 
 interface ReviewPanelProps {
-  exam: Exam;
+  exam: Exam | null;
   submission: Submission;
   reviewerRole: "本部" | "人事室";
   currentUser: User;
   onSubmissionUpdate: () => void;
+  isLessonReview: boolean;
 }
 
 interface GradingResult {
@@ -44,7 +45,7 @@ interface AiJustifications {
     [questionId: string]: string;
 }
 
-export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSubmissionUpdate }: ReviewPanelProps) {
+export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSubmissionUpdate, isLessonReview }: ReviewPanelProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [gradingResults, setGradingResults] = useState<GradingResult[]>([]);
@@ -81,7 +82,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     
     // HQ view, check if user is hq_administrator and belongs to the submission's HQ
     if(currentUser.role === 'hq_administrator'){
-       if (submission.examId === 'lesson-review-only') {
+       if (isLessonReview) {
          return submission.status !== '授業審査待ち' && submission.status !== '人事確認中';
        }
        return submission.status !== 'Submitted' && submission.status !== '本部採点中';
@@ -89,7 +90,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     
     // Default to disabled for any other case (e.g. examinee trying to view)
     return true;
-  }, [currentUser, isPersonnelOfficeView, submission.status, submission.examId]);
+  }, [currentUser, isPersonnelOfficeView, submission.status, isLessonReview]);
 
 
   const totalScore = useMemo(() => {
@@ -147,6 +148,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
 
   const handleManualScoreChange = (questionId: string, score: string) => {
+    if (!exam) return;
     const question = exam.questions.find(q => q.id === questionId);
     if (!question) return;
 
@@ -174,7 +176,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         }
         return "－";
     }
-
+    
+    if (!exam) return "－";
     const question = exam.questions.find(q => q.id === questionId);
     if (question?.type === 'descriptive' && Array.isArray(mainAnswer.value)) {
         return mainAnswer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
@@ -368,8 +371,10 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         };
         dataToUpdate.finalScore = totalScore;
         dataToUpdate.finalOutcome = finalOutcome;
-
-        if (exam && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
+        
+        if (isLessonReview) {
+            newStatus = finalOutcome === 'Passed' ? '合格' : '不合格';
+        } else if (exam && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
             newStatus = '授業審査待ち';
         } else if (finalOutcome === 'Passed') {
             newStatus = '合格';
@@ -397,13 +402,13 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const showLessonReviewForm = reviewerRole === '本部' && exam && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
   const hasAiGradingData = Object.keys(aiJustifications).length > 0;
   
-  if (submission.examId === 'lesson-review-only' || !exam) {
+  if (isLessonReview) {
     return (
        <Card>
           <CardHeader>
-            <CardTitle className="font-headline">授業動画レビュー</CardTitle>
+            <CardTitle className="font-headline">{reviewerRole}レビュー</CardTitle>
             <CardDescription>
-                提出された授業動画のURLを確認し、評価を入力してください。
+                {isPersonnelOfficeView ? "提出された授業動画のURLを確認し、最終評価を承認してください。" : "授業動画のURLを確認し、評価を入力してください。"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -479,6 +484,19 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             </fieldset>
           </CardFooter>
        </Card>
+    )
+  }
+  
+  if (!exam) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>読み込みエラー</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p>この提出に関連する試験データが見つかりませんでした。</p>
+            </CardContent>
+        </Card>
     )
   }
 

@@ -74,7 +74,8 @@ export default function AdminReviewPage() {
 
                 // If it's a lesson-review-only submission, we don't need to fetch an exam
                 let ex: Exam | null = null;
-                if (sub.examId !== 'lesson-review-only') {
+                // A submission for lesson review might still have an examId
+                if (sub.examId && sub.status !== '授業審査待ち' && sub.examId !== 'lesson-review-only') {
                     ex = await getExam(sub.examId);
                     if (!ex) {
                         setError("Exam not found for this submission.");
@@ -138,6 +139,7 @@ export default function AdminReviewPage() {
         notFound();
     }
     
+    const isLessonReview = submission.status === '授業審査待ち' || submission.examId === 'lesson-review-only';
 
     const hasAccess = currentUser.role === 'system_administrator' || 
                       (currentUser.role === 'hq_administrator' && currentUser.headquarters === submission.examineeHeadquarters);
@@ -160,8 +162,10 @@ export default function AdminReviewPage() {
         )
     }
 
-    const pageTitle = submission.examId === 'lesson-review-only' ? '授業動画レビュー' : '提出物のレビュー';
-    const pageDescription = submission.examId === 'lesson-review-only' ? '提出された授業動画のURLを確認します。' : `試験の採点: "${exam?.title}"`;
+    const pageTitle = isLessonReview ? '授業動画レビュー' : '提出物のレビュー';
+    const pageDescription = isLessonReview 
+      ? '提出された授業動画のURLを確認し、評価を承認してください。' 
+      : `試験の採点: "${exam?.title}"`;
 
     return (
         <div className="space-y-6">
@@ -225,20 +229,22 @@ export default function AdminReviewPage() {
                 </TabsList>
                 <TabsContent value="hq">
                    <ReviewPanel
-                        exam={exam!}
+                        exam={exam}
                         submission={submission}
                         reviewerRole="本部"
                         currentUser={currentUser}
                         onSubmissionUpdate={handleSubmissionUpdate}
+                        isLessonReview={isLessonReview}
                     />
                 </TabsContent>
                 <TabsContent value="po">
                     <ReviewPanel
-                        exam={exam!}
+                        exam={exam}
                         submission={submission}
                         reviewerRole="人事室"
                         currentUser={currentUser}
                         onSubmissionUpdate={handleSubmissionUpdate}
+                        isLessonReview={isLessonReview}
                     />
                 </TabsContent>
             </Tabs>
