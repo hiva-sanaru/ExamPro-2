@@ -243,10 +243,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
           try {
               const questionGrades: { [key: string]: QuestionGrade } = {};
               for (const qId in newManualScores) {
-                  questionGrades[qId] = {
-                      score: newManualScores[qId] ?? 0,
-                      justification: newAiJustifications[qId] || undefined
-                  };
+                  const grade: QuestionGrade = { score: newManualScores[qId] ?? 0 };
+                  if (newAiJustifications[qId]) {
+                      grade.justification = newAiJustifications[qId];
+                  }
+                  questionGrades[qId] = grade;
               }
               const newHqGrade = {
                   score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
@@ -280,10 +281,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
 
     const questionGrades: { [key: string]: QuestionGrade } = {};
     for (const qId in manualScores) {
-        questionGrades[qId] = {
-            score: manualScores[qId] ?? 0,
-            justification: aiJustifications[qId] || undefined
-        };
+        const grade: QuestionGrade = { score: manualScores[qId] ?? 0 };
+        if (aiJustifications[qId]) {
+          grade.justification = aiJustifications[qId];
+        }
+        questionGrades[qId] = grade;
     }
 
     if (reviewerRole === '本部') {
@@ -652,6 +654,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
     </Card>
   );
 }
+
+    
 
     
 
