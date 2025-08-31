@@ -14,13 +14,13 @@ const Textarea = React.forwardRef<
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (internalRef.current) {
       internalRef.current.style.height = 'auto';
-      internalRef.current.style.height = `${internalRef.current.scrollHeight}px`;
+      internal.current.style.height = `${internalRef.current.scrollHeight}px`;
     }
     if (onChange) {
       onChange(e);
     }
   };
-
+  
   React.useLayoutEffect(() => {
     if (internalRef.current) {
       internalRef.current.style.height = 'auto';
@@ -38,7 +38,8 @@ const Textarea = React.forwardRef<
       )}
       ref={internalRef}
       rows={1}
-      onChange={handleInput}
+      onInput={handleInput} // Use onInput to ensure height adjustment happens correctly
+      onChange={onChange} // Also keep onChange for form libraries
       {...props}
     />
   );

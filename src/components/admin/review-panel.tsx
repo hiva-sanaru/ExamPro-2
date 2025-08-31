@@ -127,9 +127,16 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
   const getAnswerForQuestion = (questionId: string) => {
     const answer = submission.answers.find((a) => a.questionId === questionId);
     if (!answer) return "－";
+
+    const question = exam.questions.find(q => q.id === questionId);
+    if (question?.type === 'descriptive' && Array.isArray(answer.value)) {
+        return answer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
+    }
+    
     if (Array.isArray(answer.value)) {
         return answer.value;
     }
+
     return answer.value || "－";
   };
   
