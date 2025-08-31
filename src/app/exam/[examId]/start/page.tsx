@@ -11,8 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User, Hash, Building, Play } from 'lucide-react';
+import { Loader2, User, Hash, Building, Play, Clock3, FileText, ListChecks } from 'lucide-react';
 import { getHeadquarters } from '@/services/headquartersService';
 import { getExam } from '@/services/examService';
 import type { Headquarters, Exam } from '@/lib/types';
@@ -96,22 +97,35 @@ export default function StartExamPage() {
   
   if (isLoading) {
     return (
-        <div className="flex justify-center items-center h-screen">
-            <Loader2 className="h-8 w-8 animate-spin" />
+        <div className="flex justify-center items-center h-screen text-muted-foreground">
+            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+            読み込み中...
         </div>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-lg">
+    <main className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-primary/5 via-transparent to-transparent p-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[280px] bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/.2),_transparent_60%)]" />
+      <Card className="w-full max-w-xl">
         <CardHeader className="text-center">
-          <CardTitle className="font-headline text-2xl">{exam?.title}</CardTitle>
+          <CardTitle className="font-headline text-2xl sm:text-3xl leading-tight">{exam?.title}</CardTitle>
           <CardDescription>
             試験を開始するには、以下の情報を入力してください。
           </CardDescription>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs sm:text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1"><Clock3 className="h-4 w-4" />{exam?.duration}分</span>
+            <span className="inline-flex items-center gap-1"><FileText className="h-4 w-4" />合計{exam?.totalPoints}点</span>
+            <span className="inline-flex items-center gap-1"><ListChecks className="h-4 w-4" />全{exam?.questions?.length ?? 0}問</span>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          <Alert>
+            <AlertTitle>注意事項</AlertTitle>
+            <AlertDescription>
+              開始ボタンを押すと制限時間のカウントが始まります。受験中はページの再読み込みや戻る操作を避けてください。
+            </AlertDescription>
+          </Alert>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -123,7 +137,7 @@ export default function StartExamPage() {
                      <div className="relative">
                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <FormControl>
-                          <Input placeholder="12345678" {...field} className="pl-10" />
+                          <Input placeholder="12345678" inputMode="numeric" autoComplete="off" {...field} className="pl-10" />
                         </FormControl>
                       </div>
                     <FormMessage />
@@ -139,7 +153,7 @@ export default function StartExamPage() {
                      <div className="relative">
                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <FormControl>
-                          <Input placeholder="山田 太郎" {...field} className="pl-10" />
+                          <Input placeholder="山田 太郎" autoComplete="name" {...field} className="pl-10" />
                         </FormControl>
                       </div>
                     <FormMessage />
