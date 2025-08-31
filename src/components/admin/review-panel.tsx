@@ -157,78 +157,123 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
   };
   
   const handleGradeAllQuestions = async () => {
-    if (reviewerRole === "人事室") return;
-    setIsBulkGrading(true);
-    toast({ title: "全問題のAI採点を開始しました...", description: "完了まで数秒お待ちください。" });
+      if (reviewerRole === "人事室") return;
+      setIsBulkGrading(true);
+      toast({ title: "全問題のAI採点を開始しました...", description: "完了まで数秒お待ちください。" });
 
-    const gradingPromises = exam.questions.map((question, index) => {
-        const answerValue = getAnswerForQuestion(question.id!);
-        const answerTexts = Array.isArray(answerValue) ? answerValue.filter(t => t.trim() !== '') : [answerValue.toString()];
+      const gradingPromises = exam.questions.flatMap(question => {
+          if (question.subQuestions && question.subQuestions.length > 0) {
+              // Grade each sub-question individually
+              return question.subQuestions.map(subQ => {
+                  const answerText = getAnswerForQuestion(question.id!, subQ.id);
+                  if (answerText === "－" || !subQ.modelAnswer) {
+                      return Promise.resolve({ questionId: subQ.id, error: "回答または模範解答がありません" });
+                  }
+                  const modelAnswers = Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer];
+                  return gradeAnswer({
+                      questionText: subQ.text,
+                      modelAnswers: modelAnswers.filter(t => t.trim() !== ''),
+                      gradingCriteria: subQ.gradingCriteria,
+                      answerTexts: [answerText],
+                      points: subQ.points,
+                  }).then(result => ({ questionId: subQ.id!, ...result }))
+                    .catch(error => ({ questionId: subQ.id!, error: error.message }));
+              });
+          } else {
+              // Grade main question
+              const answerValue = getAnswerForQuestion(question.id!);
+              const answerTexts = Array.isArray(answerValue) ? answerValue.filter(t => t.trim() !== '') : [answerValue.toString()];
 
-        if (answerTexts.length === 0 || answerTexts[0] === "－" || !question.modelAnswer) {
-            return Promise.resolve({ questionId: question.id, error: "回答または模範解答がありません" });
-        }
-        
-        const modelAnswers = Array.isArray(question.modelAnswer) ? question.modelAnswer : [question.modelAnswer];
+              if (answerTexts.length === 0 || answerTexts[0] === "－" || !question.modelAnswer) {
+                  return [Promise.resolve({ questionId: question.id, error: "回答または模範解答がありません" })];
+              }
+              const modelAnswers = Array.isArray(question.modelAnswer) ? question.modelAnswer : [question.modelAnswer];
+              return [gradeAnswer({
+                  questionText: question.text,
+                  modelAnswers: modelAnswers.filter(t => t.trim() !== ''),
+                  gradingCriteria: question.gradingCriteria,
+                  answerTexts: answerTexts,
+                  points: question.points,
+              }).then(result => ({ questionId: question.id!, ...result }))
+                .catch(error => ({ questionId: question.id!, error: error.message }))];
+          }
+      });
 
-        return gradeAnswer({
-            questionText: question.text,
-            modelAnswers: modelAnswers.filter(t => t.trim() !== ''),
-            gradingCriteria: question.gradingCriteria,
-            answerTexts: answerTexts,
-            points: question.points,
-        }).then(result => ({ questionId: question.id!, ...result }))
-          .catch(error => ({ questionId: question.id!, error: error.message }));
-    });
+      const results = await Promise.all(gradingPromises);
+      
+      const newManualScores: ManualScores = { ...manualScores };
+      const newAiJustifications: AiJustifications = { ...aiJustifications };
+      let hasNewGrading = false;
 
-    const results = await Promise.all(gradingPromises);
-    
-    const newManualScores: ManualScores = { ...manualScores };
-    const newAiJustifications: AiJustifications = { ...aiJustifications };
-    let hasNewGrading = false;
-    
-    results.forEach(result => {
-        if ('error' in result) {
-            // Do not log error, just skip this question.
-        } else {
-            hasNewGrading = true;
-            newManualScores[result.questionId] = result.score;
-            newAiJustifications[result.questionId] = result.justification;
-        }
-    });
-    
-    setManualScores(newManualScores);
-    setAiJustifications(newAiJustifications);
+      // Create a map of sub-question points
+      const subQuestionPoints: { [id: string]: number } = {};
+      exam.questions.forEach(q => {
+          q.subQuestions?.forEach(subQ => {
+              subQuestionPoints[subQ.id!] = subQ.points;
+          });
+      });
 
-    if (hasNewGrading) {
-        try {
-            const questionGrades: { [key: string]: QuestionGrade } = {};
-            for (const qId in newManualScores) {
-                questionGrades[qId] = {
-                    score: newManualScores[qId],
-                    justification: newAiJustifications[qId] || undefined
-                };
-            }
-            const newHqGrade = {
-                score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
-                justification: overallFeedback,
-                reviewer: 'AI Draft',
-                questionGrades: questionGrades
-            };
-            await updateSubmission(submission.id, { hqGrade: newHqGrade });
-            toast({ title: "AI採点結果を下書き保存しました！", description: "各問題のスコアと評価を確認してください。" });
-            onSubmissionUpdate();
+      // Process results for sub-questions first
+      exam.questions.forEach(question => {
+          if (question.subQuestions && question.subQuestions.length > 0) {
+              let mainQuestionScore = 0;
+              let mainQuestionJustification = "";
+              question.subQuestions.forEach(subQ => {
+                  const result = results.find(r => 'questionId' in r && r.questionId === subQ.id);
+                  if (result && !('error' in result)) {
+                      hasNewGrading = true;
+                      // Sub-question scores are not stored individually in manualScores, they are aggregated
+                      mainQuestionScore += result.score;
+                      mainQuestionJustification += `小問(${subQ.text}): ${result.justification}\n`;
+                  }
+              });
+              if (mainQuestionJustification) {
+                newManualScores[question.id!] = mainQuestionScore;
+                newAiJustifications[question.id!] = mainQuestionJustification.trim();
+              }
+          } else {
+               const result = results.find(r => 'questionId' in r && r.questionId === question.id);
+               if (result && !('error'in result)) {
+                  hasNewGrading = true;
+                  newManualScores[result.questionId] = result.score;
+                  newAiJustifications[result.questionId] = result.justification;
+               }
+          }
+      });
+      
+      setManualScores(newManualScores);
+      setAiJustifications(newAiJustifications);
 
-        } catch (error) {
-            console.error("Failed to save AI grading draft:", error);
-            toast({ title: "下書き保存エラー", description: "AI採点結果の保存中にエラーが発生しました。", variant: "destructive" });
-        }
-    } else {
-        toast({ title: "AI一括採点が完了しました", description: "採点対象となる新しい回答はありませんでした。" });
-    }
+      if (hasNewGrading) {
+          try {
+              const questionGrades: { [key: string]: QuestionGrade } = {};
+              for (const qId in newManualScores) {
+                  questionGrades[qId] = {
+                      score: newManualScores[qId],
+                      justification: newAiJustifications[qId] || undefined
+                  };
+              }
+              const newHqGrade = {
+                  score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
+                  justification: overallFeedback,
+                  reviewer: 'AI Draft',
+                  questionGrades: questionGrades
+              };
+              await updateSubmission(submission.id, { hqGrade: newHqGrade });
+              toast({ title: "AI採点結果を下書き保存しました！", description: "各問題のスコアと評価を確認してください。" });
+              onSubmissionUpdate();
 
-    setIsBulkGrading(false);
+          } catch (error) {
+              console.error("Failed to save AI grading draft:", error);
+              toast({ title: "下書き保存エラー", description: "AI採点結果の保存中にエラーが発生しました。", variant: "destructive" });
+          }
+      } else {
+          toast({ title: "AI一括採点が完了しました", description: "採点対象となる新しい回答はありませんでした。" });
+      }
+
+      setIsBulkGrading(false);
   }
+
 
   const handleSubmitReview = async () => {
     setIsSubmitting(true);
@@ -404,7 +449,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                       <div className="space-y-2 pt-4 border-t">
                           <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
                           {justification ? (
-                              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
+                              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
                                   <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
                                   <p><strong>根拠:</strong> {justification}</p>
                               </div>
@@ -435,7 +480,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                       <div className="space-y-2 pt-4 border-t">
                           <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
                           {justification ? (
-                              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
+                              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
                                   <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
                                   <p><strong>根拠:</strong> {justification}</p>
                               </div>

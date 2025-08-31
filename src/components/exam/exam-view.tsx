@@ -141,24 +141,19 @@ export function ExamView({ exam }: ExamViewProps) {
         const existingAnswerIndex = newAnswers.findIndex((a) => a.questionId === questionId);
 
         if (existingAnswerIndex > -1) {
-            const existingAnswer = { ...newAnswers[existingAnswerIndex] };
-            if (isSubAnswerArray(value)) {
-                existingAnswer.subAnswers = value;
-            } else {
-                existingAnswer.value = value;
-            }
-            newAnswers[existingAnswerIndex] = existingAnswer;
+            newAnswers[existingAnswerIndex] = {
+                ...newAnswers[existingAnswerIndex],
+                ...(isSubAnswerArray(value) ? { subAnswers: value } : { value: value })
+            };
         } else {
-            if (isSubAnswerArray(value)) {
-                newAnswers.push({ questionId, value: '', subAnswers: value });
-            } else {
-                newAnswers.push({ questionId, value: value as string | string[], subAnswers: [] });
-            }
+             newAnswers.push({
+                questionId,
+                ...(isSubAnswerArray(value) ? { value: '', subAnswers: value } : { value: value, subAnswers: [] })
+            });
         }
         return newAnswers;
     });
 };
-
   
   const handleTimeUp = useCallback(() => {
     // Time is up for the whole exam, force review and submission
