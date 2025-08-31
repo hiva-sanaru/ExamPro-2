@@ -12,10 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import type { User, Headquarters } from "@/lib/types";
 import { cva } from "class-variance-authority";
 import { AddUserForm } from "./add-user-form";
@@ -101,57 +100,53 @@ export function UserList({ users, onUserDeleted, onUserUpdated, headquartersList
               </TableCell>
               <TableCell className="text-center">{user.headquarters || '－'}</TableCell>
               <TableCell className="text-right">
-                <Dialog open={openEditDialogs[user.id] || false} onOpenChange={(open) => handleDialogChange(user.id, open)}>
-                  <AlertDialog>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">アクション</span>
+                <div className="flex justify-end items-center gap-2">
+                    <Dialog open={openEditDialogs[user.id] || false} onOpenChange={(open) => handleDialogChange(user.id, open)}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="icon">
+                                <Edit className="h-4 w-4" />
+                                <span className="sr-only">編集</span>
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}><Edit className="mr-2 h-4 w-4" />編集</DropdownMenuItem>
-                            </DialogTrigger>
-                            <DropdownMenuSeparator />
-                            <AlertDialogTrigger asChild>
-                               <DropdownMenuItem className="text-destructive hover:!text-destructive focus:!text-destructive" onSelect={(e) => e.preventDefault()}>
-                                  <Trash2 className="mr-2 h-4 w-4"/>削除
-                               </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                     <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>ユーザーを編集</DialogTitle>
-                            <DialogDescription>
-                                ユーザーの詳細を更新します。
-                            </DialogDescription>
-                        </DialogHeader>
-                        <AddUserForm 
-                          user={user} 
-                          onFinished={(updatedUser) => {
-                              onUserUpdated(updatedUser);
-                              handleDialogChange(user.id, false);
-                          }}
-                          headquartersList={headquartersList}
-                        />
-                    </DialogContent>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                          <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
-                          <AlertDialogDescription>
-                              この操作は元に戻すことはできません。ユーザー「{user.name}」と関連するすべてのデータが完全に削除されます。
-                          </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(user)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </Dialog>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>ユーザーを編集</DialogTitle>
+                                <DialogDescription>
+                                    ユーザーの詳細を更新します。
+                                </DialogDescription>
+                            </DialogHeader>
+                            <AddUserForm 
+                              user={user} 
+                              onFinished={(updatedUser) => {
+                                  onUserUpdated(updatedUser);
+                                  handleDialogChange(user.id, false);
+                              }}
+                              headquartersList={headquartersList}
+                              onClose={() => handleDialogChange(user.id, false)}
+                            />
+                        </DialogContent>
+                    </Dialog>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="icon">
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">削除</span>
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    この操作は元に戻すことはできません。ユーザー「{user.name}」と関連するすべてのデータが完全に削除されます。
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(user)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
               </TableCell>
             </TableRow>
           ))}
