@@ -2,6 +2,7 @@
 "use client"
 import React, { useState, useEffect } from "react";
 import Link from 'next/link';
+import Image from "next/image";
 import { usePathname } from 'next/navigation';
 import {
     SidebarProvider,
@@ -58,8 +59,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <SidebarProvider>
             <Sidebar variant="sidebar" collapsible="icon">
                 <SidebarHeader>
-                    <div className="flex items-center gap-2">
-                        <span className="font-headline text-lg font-semibold text-primary-foreground">SANARU</span>
+                    <div className="flex items-center justify-center p-2 group-data-[collapsible=icon]:p-0.5">
+                       <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={150} height={50} className="group-data-[collapsible=icon]:hidden" />
+                       <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={32} height={32} className="hidden group-data-[collapsible=icon]:block rounded-full object-cover" />
                     </div>
                 </SidebarHeader>
                 <SidebarContent>

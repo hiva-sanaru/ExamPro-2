@@ -11,6 +11,7 @@ import { ArrowRight, Loader2, Clock3, FileText, Upload } from "lucide-react";
 import { getExams } from "@/services/examService";
 import type { Exam } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import Image from "next/image";
 
 
 function ExamineePortal() {
@@ -42,10 +43,8 @@ function ExamineePortal() {
         <main className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-primary/5 via-transparent to-transparent p-4 sm:p-8">
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[320px] bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/.2),_transparent_60%)]" />
             <div className="w-full max-w-5xl space-y-8">
-                <header className="space-y-3 text-center">
-                    <h1 className="text-4xl sm:text-5xl font-bold font-headline tracking-tight">
-                        SANARUスタッフ昇給試験サイト
-                    </h1>
+                <header className="space-y-3 text-center flex flex-col items-center">
+                    <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={425} height={141} priority />
                     <p className="mx-auto max-w-2xl text-muted-foreground text-base sm:text-lg">
                         受験したい筆記試験を選択するか、授業動画を提出してください。
                     </p>

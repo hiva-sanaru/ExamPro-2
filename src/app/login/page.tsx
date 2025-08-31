@@ -1,14 +1,13 @@
 
 import { LoginForm } from "@/components/auth/login-form";
-import { BookTextIcon } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-background to-secondary/50 p-8">
       <div className="flex w-full max-w-lg flex-col items-center space-y-6">
         <div className="flex items-center space-x-3 text-primary">
-          <BookTextIcon className="h-10 w-10" />
-          <h1 className="whitespace-nowrap text-3xl font-bold font-headline">管理者用ログイン</h1>
+          <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={300} height={100} priority />
         </div>
         <LoginForm />
       </div>

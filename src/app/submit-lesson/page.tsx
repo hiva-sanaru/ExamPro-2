@@ -16,6 +16,7 @@ import { Loader2, Youtube, Send, User, Hash, Building } from 'lucide-react';
 import { addSubmission } from '@/services/submissionService';
 import { getHeadquarters } from '@/services/headquartersService';
 import type { Headquarters } from '@/lib/types';
+import Image from 'next/image';
 
 
 const lessonSubmissionSchema = z.object({
@@ -102,11 +103,8 @@ export default function SubmitLessonPage() {
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-primary/5 via-transparent to-transparent p-4">
       <Card className="w-full max-w-xl">
-        <CardHeader className="text-center">
-          <CardTitle className="font-headline text-2xl sm:text-3xl leading-tight">授業動画URLの提出</CardTitle>
-          <CardDescription>
-            受験者情報と、録画した授業のYouTube URLを提出してください。
-          </CardDescription>
+        <CardHeader className="text-center flex flex-col items-center">
+            <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={300} height={100} priority />
         </CardHeader>
         <CardContent>
           <Form {...form}>
