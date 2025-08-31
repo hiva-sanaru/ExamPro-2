@@ -97,7 +97,7 @@ function ExamineePortal() {
                                                         <Badge variant="outline" className="ml-2 whitespace-nowrap">{exam.type === 'WrittenAndInterview' ? '筆記＋授業審査' : '筆記のみ'}</Badge>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                                <div className="flex flex-col items-start gap-1 text-sm text-muted-foreground">
                                                     <span className="inline-flex items-center gap-1">
                                                         <Clock3 className="h-4 w-4" />
                                                         {exam.duration}分
