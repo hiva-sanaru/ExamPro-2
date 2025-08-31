@@ -94,6 +94,7 @@ export function ExamView({ exam }: ExamViewProps) {
   const handleNext = useCallback(() => {
     if (api) {
         api.scrollNext();
+        window.scrollTo(0, 0);
     }
   }, [api])
 
