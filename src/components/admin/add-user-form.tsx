@@ -25,12 +25,12 @@ const userSchema = (isEditing: boolean) => z.object({
     }),
     headquarters: z.string().optional(),
 }).refine(data => {
-    if ((data.role === 'hq_administrator' || data.role === 'examinee') && !data.headquarters) {
+    if ((data.role === 'hq_administrator') && !data.headquarters) {
         return false;
     }
     return true;
 }, {
-    message: "本部管理者または受験者の場合は本部を選択してください。",
+    message: "本部管理者の場合は本部を選択してください。",
     path: ["headquarters"],
 });
 
@@ -70,7 +70,7 @@ export function AddUserForm({ user, onFinished, headquartersList, onClose }: Add
             name: data.name,
             employeeId: data.employeeId,
             role: data.role,
-            headquarters: (data.role === 'hq_administrator' || data.role === 'examinee') ? data.headquarters : '',
+            headquarters: (data.role === 'hq_administrator') ? data.headquarters : '',
             avatarUrl: `https://placehold.co/40x40.png?text=${data.name.substring(0,2).toUpperCase()}`
         };
 
@@ -173,7 +173,7 @@ export function AddUserForm({ user, onFinished, headquartersList, onClose }: Add
             </FormItem>
           )}
         />
-        {(role === 'hq_administrator' || role === 'examinee') && (
+        {(role === 'hq_administrator') && (
             <FormField
             control={form.control}
             name="headquarters"
@@ -197,7 +197,10 @@ export function AddUserForm({ user, onFinished, headquartersList, onClose }: Add
             )}
             />
         )}
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-4 gap-2">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+                キャンセル
+            </Button>
             <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isLoading ? (isEditing ? "更新中..." : "作成中...") : (isEditing ? "変更を保存" : "ユーザーを作成")}
