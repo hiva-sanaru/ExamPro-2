@@ -213,6 +213,7 @@ export default function AdminReviewPage() {
                         exam={exam}
                         submission={submission}
                         reviewerRole="本部"
+                        currentUser={currentUser}
                         onSubmissionUpdate={handleSubmissionUpdate}
                     />
                 </TabsContent>
@@ -221,6 +222,7 @@ export default function AdminReviewPage() {
                         exam={exam}
                         submission={submission}
                         reviewerRole="人事室"
+                        currentUser={currentUser}
                         onSubmissionUpdate={handleSubmissionUpdate}
                     />
                 </TabsContent>

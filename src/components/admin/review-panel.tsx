@@ -4,13 +4,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { gradeAnswer } from "@/ai/flows/grade-answer";
 import { useToast } from "@/hooks/use-toast";
-import type { Exam, Submission, QuestionGrade } from "@/lib/types";
+import type { Exam, Submission, QuestionGrade, User } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Wand2, User, Check, Loader2, Building, ThumbsUp, ThumbsDown, Calendar as CalendarIcon, CheckCircle } from "lucide-react";
+import { Bot, Wand2, User as UserIcon, Check, Loader2, Building, ThumbsUp, ThumbsDown, Calendar as CalendarIcon, CheckCircle } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { updateSubmission } from "@/services/submissionService";
@@ -25,6 +25,7 @@ interface ReviewPanelProps {
   exam: Exam;
   submission: Submission;
   reviewerRole: "本部" | "人事室";
+  currentUser: User;
   onSubmissionUpdate: () => void;
 }
 
@@ -43,7 +44,7 @@ interface AiJustifications {
     [questionId: string]: string;
 }
 
-export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate }: ReviewPanelProps) {
+export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSubmissionUpdate }: ReviewPanelProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [gradingResults, setGradingResults] = useState<GradingResult[]>([]);
@@ -64,6 +65,14 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
   const [time2, setTime2] = useState(submission.lessonReviewDate2 ? format(submission.lessonReviewDate2.toDate(), 'HH:mm') : '10:00');
   const [schoolName, setSchoolName] = useState(submission.lessonReviewSchoolName || '');
   const [classroomName, setClassroomName] = useState(submission.lessonReviewClassroomName || '');
+
+
+  const isActionDisabled = useMemo(() => {
+    if (currentUser.role === 'system_administrator') return false; // Sys admin can do anything
+    if (isPersonnelOfficeView && currentUser.role !== 'system_administrator') return true; // PO view is for sys_admin only
+    if (!isPersonnelOfficeView && currentUser.role !== 'hq_administrator') return true; // HQ view is for hq_admin only
+    return false;
+  }, [currentUser.role, isPersonnelOfficeView]);
 
 
   const totalScore = useMemo(() => {
@@ -274,7 +283,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
   const handleSubmitReview = async () => {
     setIsSubmitting(true);
     
-    const mockReviewerName = reviewerRole === '本部' ? '山田 花子' : 'システム管理者';
+    const mockReviewerName = reviewerRole === '本部' ? currentUser.name : 'システム管理者';
 
     let dataToUpdate: Partial<Submission> = {};
     let newStatus: Submission['status'] = submission.status;
@@ -329,11 +338,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
         dataToUpdate.finalOutcome = finalOutcome;
 
         if (finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
-            if (exam.lessonReviewType === 'DateSubmission') {
-                newStatus = '授業審査待ち';
-            } else { // UrlSubmission
-                newStatus = '合格'; // Status becomes 'Passed', but they need to submit URL
-            }
+            newStatus = '授業審査待ち';
         } else if (finalOutcome === 'Passed') {
             newStatus = '合格';
         } else {
@@ -374,7 +379,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                 </CardDescription>
             </div>
             {!isPersonnelOfficeView && (
-                <Button onClick={handleGradeAllQuestions} disabled={isBulkGrading}>
+                <Button onClick={handleGradeAllQuestions} disabled={isBulkGrading || isActionDisabled}>
                     {isBulkGrading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
                     {isBulkGrading ? "採点中..." : (hasAiGradingData ? "AIで再採点" : "AIで一括採点")}
                 </Button>
@@ -419,246 +424,242 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
           const justification = aiJustifications[question.id!];
 
           return (
-            <Card key={question.id} className="overflow-hidden">
-                <CardHeader className="bg-primary/5 p-4 border-b">
-                    <div className="flex justify-between w-full items-start">
-                        <CardTitle className="text-base font-normal text-foreground">問題 {index + 1}: {question.text}</CardTitle>
-                        <div className="flex items-center gap-2">
-                            {justification && <Badge variant="secondary">AI採点済み</Badge>}
-                            {isBulkGrading && !justification && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  {!hasSubQuestions ? (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                              <Label className="flex items-center gap-2"><User className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                              <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getAnswerForQuestion(question.id!)}</p>
-                          </div>
-                          <div className="space-y-2">
-                              <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
-                              <p className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[100px] whitespace-pre-wrap">{(Array.isArray(question.modelAnswer) ? question.modelAnswer.join(', ') : question.modelAnswer) || "－"}</p>
+            <fieldset key={question.id} disabled={isActionDisabled} className="disabled:opacity-70">
+              <Card className="overflow-hidden">
+                  <CardHeader className="bg-primary/5 p-4 border-b">
+                      <div className="flex justify-between w-full items-start">
+                          <CardTitle className="text-base font-normal text-foreground">問題 {index + 1}: {question.text}</CardTitle>
+                          <div className="flex items-center gap-2">
+                              {justification && <Badge variant="secondary">AI採点済み</Badge>}
+                              {isBulkGrading && !justification && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                           </div>
                       </div>
-                      
-                      <div className="space-y-2 pt-4 border-t">
-                          <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
-                          {justification ? (
-                              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
-                                  <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
-                                  <p><strong>根拠:</strong> {justification}</p>
-                              </div>
-                          ) : (
-                              <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
-                                  <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
-                              </div>
-                          )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-4">
-                      {question.subQuestions?.map((subQ, subIndex) => (
-                        <div key={subQ.id} className="pt-4 border-t first:border-t-0 first:pt-0">
-                          <p className="font-medium">({subIndex + 1}) {subQ.text}</p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    {!hasSubQuestions ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label className="flex items-center gap-2 text-sm"><User className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                                <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{getAnswerForQuestion(question.id!, subQ.id)}</p>
+                                <Label className="flex items-center gap-2"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
+                                <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getAnswerForQuestion(question.id!)}</p>
                             </div>
                             <div className="space-y-2">
-                                <Label className="flex items-center gap-2 text-sm"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
-                                <p className="p-2 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[60px] whitespace-pre-wrap">{subQ.modelAnswer || "－"}</p>
+                                <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
+                                <p className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[100px] whitespace-pre-wrap">{(Array.isArray(question.modelAnswer) ? question.modelAnswer.join(', ') : question.modelAnswer) || "－"}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2 pt-4 border-t">
+                            <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
+                            {justification ? (
+                                <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
+                                    <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
+                                    <p><strong>根拠:</strong> {justification}</p>
+                                </div>
+                            ) : (
+                                <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
+                                    <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                                </div>
+                            )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        {question.subQuestions?.map((subQ, subIndex) => (
+                          <div key={subQ.id} className="pt-4 border-t first:border-t-0 first:pt-0">
+                            <p className="font-medium">({subIndex + 1}) {subQ.text}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                              <div className="space-y-2">
+                                  <Label className="flex items-center gap-2 text-sm"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
+                                  <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{getAnswerForQuestion(question.id!, subQ.id)}</p>
+                              </div>
+                              <div className="space-y-2">
+                                  <Label className="flex items-center gap-2 text-sm"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
+                                  <p className="p-2 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[60px] whitespace-pre-wrap">{subQ.modelAnswer || "－"}</p>
+                              </div>
                             </div>
                           </div>
+                        ))}
+                        <div className="space-y-2 pt-4 border-t">
+                            <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
+                             {justification ? (
+                                <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
+                                    <p><strong>合計スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
+                                    <p className="font-medium">根拠:</p>
+                                    <p className="whitespace-pre-wrap">{justification}</p>
+                                </div>
+                            ) : (
+                                <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
+                                    <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                                </div>
+                            )}
                         </div>
-                      ))}
-                      <div className="space-y-2 pt-4 border-t">
-                          <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
-                           {justification ? (
-                              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
-                                  <p><strong>合計スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
-                                  <p className="font-medium">根拠:</p>
-                                  <p className="whitespace-pre-wrap">{justification}</p>
-                              </div>
-                          ) : (
-                              <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
-                                  <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
-                              </div>
-                          )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <div className="space-y-2 pt-4 border-t">
-                      <Label htmlFor={`score-${question.id}`}>{isPersonnelOfficeView ? "最終スコア" : "あなたの評価"}</Label>
-                      <div className="flex items-center gap-2">
-                          <Input 
-                              id={`score-${question.id}`} 
-                              type="number" 
-                              placeholder="スコア" 
-                              className="w-24" 
-                              max={question.points}
-                              min={0}
-                              value={manualScores[question.id!] ?? ''}
-                              onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
-                          />
-                          <span className="text-muted-foreground">/ {question.points} 点</span>
-                      </div>
-                  </div>
-                </CardContent>
-            </Card>
+                    <div className="space-y-2 pt-4 border-t">
+                        <Label htmlFor={`score-${question.id}`}>{isPersonnelOfficeView ? "最終スコア" : "あなたの評価"}</Label>
+                        <div className="flex items-center gap-2">
+                            <Input 
+                                id={`score-${question.id}`} 
+                                type="number" 
+                                placeholder="スコア" 
+                                className="w-24" 
+                                max={question.points}
+                                min={0}
+                                value={manualScores[question.id!] ?? ''}
+                                onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
+                            />
+                            <span className="text-muted-foreground">/ {question.points} 点</span>
+                        </div>
+                    </div>
+                  </CardContent>
+              </Card>
+            </fieldset>
           );
         })}
       </CardContent>
       <CardFooter className="flex flex-col items-stretch gap-4">
-        <div className="border-t pt-4">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-headline">最終評価</h3>
-                <div className="text-2xl font-bold">
-                    合計スコア: {totalScore} / {exam.totalPoints}
+        <fieldset disabled={isActionDisabled} className="disabled:opacity-70">
+            <div className="border-t pt-4">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-headline">最終評価</h3>
+                    <div className="text-2xl font-bold">
+                        合計スコア: {totalScore} / {exam.totalPoints}
+                    </div>
                 </div>
-            </div>
 
-            {isPersonnelOfficeView && (
-              <div className="space-y-4 my-4">
-                <Label>最終的な合否</Label>
-                <div className="flex gap-4">
-                    <Button 
-                        onClick={() => setFinalOutcome('Passed')}
-                        variant={finalOutcome === 'Passed' ? 'default' : 'outline'}
-                        className={cn("flex-1", finalOutcome === 'Passed' && "bg-green-600 hover:bg-green-700")}
-                    >
-                        <ThumbsUp className="mr-2 h-4 w-4" />
-                        合格
-                    </Button>
-                    <Button 
-                        onClick={() => setFinalOutcome('Failed')}
-                        variant={finalOutcome === 'Failed' ? 'destructive' : 'outline'}
-                         className="flex-1"
-                    >
-                        <ThumbsDown className="mr-2 h-4 w-4" />
-                        不合格
-                    </Button>
-                </div>
-              </div>
-            )}
+                {isPersonnelOfficeView && (
+                  <div className="space-y-4 my-4">
+                    <Label>最終的な合否</Label>
+                    <div className="flex gap-4">
+                        <Button 
+                            onClick={() => setFinalOutcome('Passed')}
+                            variant={finalOutcome === 'Passed' ? 'default' : 'outline'}
+                            className={cn("flex-1", finalOutcome === 'Passed' && "bg-green-600 hover:bg-green-700")}
+                        >
+                            <ThumbsUp className="mr-2 h-4 w-4" />
+                            合格
+                        </Button>
+                        <Button 
+                            onClick={() => setFinalOutcome('Failed')}
+                            variant={finalOutcome === 'Failed' ? 'destructive' : 'outline'}
+                             className="flex-1"
+                        >
+                            <ThumbsDown className="mr-2 h-4 w-4" />
+                            不合格
+                        </Button>
+                    </div>
+                  </div>
+                )}
 
-            {showLessonReviewForm && (
-                 <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800 mt-4">
-                    <CardHeader>
-                         <CardTitle className="text-blue-800 dark:text-blue-300">高得点 - 授業審査へ</CardTitle>
-                         <CardDescription>この受験者は80点以上を獲得しました。授業審査の希望日時と場所を入力してください。</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="schoolName">校舎名</Label>
-                                    <Input id="schoolName" value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="例: 名古屋本部校" className="bg-white" />
+                {showLessonReviewForm && (
+                     <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800 mt-4">
+                        <CardHeader>
+                             <CardTitle className="text-blue-800 dark:text-blue-300">高得点 - 授業審査へ</CardTitle>
+                             <CardDescription>この受験者は80点以上を獲得しました。授業審査の希望日時と場所を入力してください。</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="schoolName">校舎名</Label>
+                                        <Input id="schoolName" value={schoolName} onChange={e => setSchoolName(e.target.value)} placeholder="例: 名古屋本部校" className="bg-white" />
+                                    </div>
+                                     <div className="space-y-2">
+                                        <Label htmlFor="date1">第一希望日時</Label>
+                                        <div className="flex gap-2">
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-white", !date1 && "text-muted-foreground")}>
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {date1 ? format(date1, "PPP", { locale: ja }) : <span>日付を選択</span>}
+                                                </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0">
+                                                    <Calendar mode="single" selected={date1} onSelect={setDate1} initialFocus disabled={{ before: new Date() }}/>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <Input type="time" value={time1} onChange={e => setTime1(e.target.value)} className="w-32 bg-white" />
+                                        </div>
+                                    </div>
                                 </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="classroomName">教室名</Label>
+                                        <Input id="classroomName" value={classroomName} onChange={e => setClassroomName(e.target.value)} placeholder="例: 301教室" className="bg-white" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="date2">第二希望日時 (任意)</Label>
+                                        <div className="flex gap-2">
+                                             <Popover>
+                                                <PopoverTrigger asChild>
+                                                <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-white", !date2 && "text-muted-foreground")}>
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {date2 ? format(date2, "PPP", { locale: ja }) : <span>日付を選択</span>}
+                                                </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0">
+                                                    <Calendar mode="single" selected={date2} onSelect={setDate2} disabled={{ before: new Date() }} />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <Input type="time" value={time2} onChange={e => setTime2(e.target.value)} className="w-32 bg-white"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {isPersonnelOfficeView && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
+                     <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
+                        <CardHeader>
+                             <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>
+                             <CardDescription>この受験者は筆記試験に合格しました。次のステップに進んでください。</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {exam.lessonReviewType === 'UrlSubmission' ? (
+                                <p>この試験は「YouTube URL提出」形式です。このまま承認すると、受験者のマイページにURL提出フォームが表示されます。</p>
+                            ) : (
+                               submission.lessonReviewDate1 ? (
                                  <div className="space-y-2">
-                                    <Label htmlFor="date1">第一希望日時</Label>
-                                    <div className="flex gap-2">
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-white", !date1 && "text-muted-foreground")}>
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {date1 ? format(date1, "PPP", { locale: ja }) : <span>日付を選択</span>}
-                                            </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                                <Calendar mode="single" selected={date1} onSelect={setDate1} initialFocus disabled={{ before: new Date() }}/>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <Input type="time" value={time1} onChange={e => setTime1(e.target.value)} className="w-32 bg-white" />
+                                   <Label>本部担当者が入力した希望日時・場所</Label>
+                                    <div className="text-sm space-y-1">
+                                      <p><strong>第一希望:</strong> {format(submission.lessonReviewDate1.toDate(), "PPP HH:mm", { locale: ja })}</p>
+                                      {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
+                                      {submission.lessonReviewSchoolName && <p><strong>校舎名:</strong> {submission.lessonReviewSchoolName}</p>}
+                                      {submission.lessonReviewClassroomName && <p><strong>教室名:</strong> {submission.lessonReviewClassroomName}</p>}
                                     </div>
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="classroomName">教室名</Label>
-                                    <Input id="classroomName" value={classroomName} onChange={e => setClassroomName(e.target.value)} placeholder="例: 301教室" className="bg-white" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="date2">第二希望日時 (任意)</Label>
-                                    <div className="flex gap-2">
-                                         <Popover>
-                                            <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal bg-white", !date2 && "text-muted-foreground")}>
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {date2 ? format(date2, "PPP", { locale: ja }) : <span>日付を選択</span>}
-                                            </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                                <Calendar mode="single" selected={date2} onSelect={setDate2} disabled={{ before: new Date() }} />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <Input type="time" value={time2} onChange={e => setTime2(e.target.value)} className="w-32 bg-white"/>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+                                 </div>
+                               ) : (
+                                <p className="text-destructive">本部担当者によって希望日時が入力されていません。本部担当者に確認してください。</p>
+                               )
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
-            {isPersonnelOfficeView && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
-                 <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
-                    <CardHeader>
-                         <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>
-                         <CardDescription>この受験者は筆記試験に合格しました。次のステップに進んでください。</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {exam.lessonReviewType === 'UrlSubmission' ? (
-                            <p>この試験は「YouTube URL提出」形式です。このまま承認すると、受験者のマイページにURL提出フォームが表示されます。</p>
-                        ) : (
-                           submission.lessonReviewDate1 ? (
-                             <div className="space-y-2">
-                               <Label>本部担当者が入力した希望日時・場所</Label>
-                                <div className="text-sm space-y-1">
-                                  <p><strong>第一希望:</strong> {format(submission.lessonReviewDate1.toDate(), "PPP HH:mm", { locale: ja })}</p>
-                                  {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
-                                  {submission.lessonReviewSchoolName && <p><strong>校舎名:</strong> {submission.lessonReviewSchoolName}</p>}
-                                  {submission.lessonReviewClassroomName && <p><strong>教室名:</strong> {submission.lessonReviewClassroomName}</p>}
-                                </div>
-                             </div>
-                           ) : (
-                            <p className="text-destructive">本部担当者によって希望日時が入力されていません。本部担当者に確認してください。</p>
-                           )
-                        )}
-                    </CardContent>
-                </Card>
-            )}
-
-            <div className="w-full space-y-2 mt-4">
-                <Label htmlFor="overall-feedback">
-                    {isPersonnelOfficeView ? "人事室フィードバック (最終承認)" : "全体的なフィードバック"}
-                </Label>
-                <Textarea 
-                    id="overall-feedback" 
-                    placeholder="この提出物に関する最終コメントを記入してください..." 
-                    value={overallFeedback}
-                    onChange={(e) => setOverallFeedback(e.target.value)}
-                />
+                <div className="w-full space-y-2 mt-4">
+                    <Label htmlFor="overall-feedback">
+                        {isPersonnelOfficeView ? "人事室フィードバック (最終承認)" : "全体的なフィードバック"}
+                    </Label>
+                    <Textarea 
+                        id="overall-feedback" 
+                        placeholder="この提出物に関する最終コメントを記入してください..." 
+                        value={overallFeedback}
+                        onChange={(e) => setOverallFeedback(e.target.value)}
+                    />
+                </div>
             </div>
-        </div>
-        <div className="flex justify-end w-full">
-            <Button onClick={handleSubmitReview} disabled={isSubmitting} size="lg">
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check />}
-                {isSubmitting ? "送信中..." : isPersonnelOfficeView ? "最終承認して完了" : "レビューを送信"}
-            </Button>
-        </div>
+            <div className="flex justify-end w-full">
+                <Button onClick={handleSubmitReview} disabled={isSubmitting || isActionDisabled} size="lg">
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check />}
+                    {isSubmitting ? "送信中..." : isPersonnelOfficeView ? "最終承認して完了" : "レビューを送信"}
+                </Button>
+            </div>
+        </fieldset>
       </CardFooter>
     </Card>
   );
 }
-
-    
-
-    
-
-    
-
-    
