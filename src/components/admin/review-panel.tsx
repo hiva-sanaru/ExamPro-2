@@ -432,6 +432,19 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                           </div>
                         </div>
                       ))}
+                      <div className="space-y-2 pt-4 border-t">
+                          <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
+                          {justification ? (
+                              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
+                                  <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
+                                  <p><strong>根拠:</strong> {justification}</p>
+                              </div>
+                          ) : (
+                              <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
+                                  <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                              </div>
+                          )}
+                      </div>
                     </div>
                   )}
 
@@ -598,3 +611,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
     </Card>
   );
 }
+
+    
