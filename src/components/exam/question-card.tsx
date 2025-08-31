@@ -21,29 +21,31 @@ interface QuestionCardProps {
     onReview: () => void;
 }
 
-const renderFillInTheBlank = (
+const renderFillInTheBlankInputs = (
   text: string,
   value: string[],
   onChange: (index: number, value: string) => void
 ) => {
-  const parts = text.split('___');
+  const blankCount = (text.match(/___/g) || []).length;
+  if (blankCount === 0) return null;
+
   return (
-    <div className="flex items-baseline gap-2 flex-wrap text-lg leading-relaxed">
-        {parts.map((part, index) => (
-            <React.Fragment key={index}>
-                {part && <span>{part}</span>}
-                {index < parts.length - 1 && (
-                     <Input 
-                        className="inline-block w-48 h-8 border-0 border-b rounded-none focus:ring-0 px-1 align-baseline"
-                        value={value[index] || ''}
-                        onChange={(e) => onChange(index, e.target.value)}
-                    />
-                )}
-            </React.Fragment>
+    <div className="space-y-3">
+        {Array.from({ length: blankCount }).map((_, i) => (
+            <div key={i} className="flex items-center gap-2">
+                <Label htmlFor={`blank-${i}`} className="w-12 text-center text-muted-foreground">({i + 1})</Label>
+                <Input 
+                    id={`blank-${i}`}
+                    value={value[i] || ''}
+                    onChange={(e) => onChange(i, e.target.value)}
+                    placeholder={`空欄 ${i + 1} の答え`}
+                />
+            </div>
         ))}
     </div>
   );
 };
+
 
 export const QuestionCard = ({ question, index, answer, onAnswerChange, isLastQuestion, onNext, onReview }: QuestionCardProps) => {
     
@@ -96,7 +98,7 @@ export const QuestionCard = ({ question, index, answer, onAnswerChange, isLastQu
                 )}
             </CardHeader>
             <CardContent>
-                 <div className="text-lg whitespace-pre-wrap">{question.type !== 'fill-in-the-blank' ? question.text : ''}</div>
+                 <div className="text-lg whitespace-pre-wrap">{question.text}</div>
                 
                 {!hasSubQuestions && (
                     <div className="space-y-4 mt-4">
@@ -125,7 +127,7 @@ export const QuestionCard = ({ question, index, answer, onAnswerChange, isLastQu
                             </div>
                         )}
                         {question.type === 'fill-in-the-blank' && (
-                           renderFillInTheBlank(question.text, Array.isArray(answer?.value) ? answer.value : [], handleFillInTheBlankChange)
+                           renderFillInTheBlankInputs(question.text, Array.isArray(answer?.value) ? answer.value : [], handleFillInTheBlankChange)
                         )}
                         {question.type === 'selection' && question.options && (
                             <RadioGroup value={typeof answer?.value === 'string' ? answer.value : ''} onValueChange={(value) => onAnswerChange(question.id!, value)}>
@@ -177,3 +179,5 @@ export const QuestionCard = ({ question, index, answer, onAnswerChange, isLastQu
         </Card>
     )
 }
+
+    
