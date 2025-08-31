@@ -9,6 +9,7 @@ export default function LoginPage() {
         <div className="flex items-center space-x-3 text-primary">
           <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={300} height={100} priority data-ai-hint="logo" />
         </div>
+        <h1 className="text-sm text-muted-foreground whitespace-nowrap">SANARUスタッフ昇給試験サイト</h1>
         <LoginForm />
       </div>
        <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">

@@ -40,7 +40,7 @@ function ExamineePortal() {
     }, [toast]);
 
     return (
-        <main className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-primary/5 via-transparent to-transparent p-4 sm:p-8">
+        <main className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-accent/10 via-transparent to-transparent p-4 sm:p-8">
             <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[320px] bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/.2),_transparent_60%)]" />
             <div className="w-full max-w-5xl space-y-8">
                 <header className="space-y-3 text-center flex flex-col items-center">

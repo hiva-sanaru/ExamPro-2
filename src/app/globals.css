@@ -20,8 +20,9 @@ body {
     --secondary-foreground: 222.2 84% 4.9%;
     --muted: 210 40% 94%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 221 83% 53%;
-    --accent-foreground: 210 40% 98%;
+    /* Brand accent (gold) to align with logo */
+    --accent: 43 55% 55%;
+    --accent-foreground: 222.2 84% 4.9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 210 40% 88%;
@@ -55,7 +56,8 @@ body {
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217 91% 60%;
+    /* Slightly richer gold for dark mode */
+    --accent: 43 70% 55%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
