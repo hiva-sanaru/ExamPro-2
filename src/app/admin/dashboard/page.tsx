@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
     }, []);
 
     const dashboardStats = useMemo(() => {
-        const ungradedSubmissions = submissions.filter(s => s.status === '本部採点中').length;
+        const ungradedSubmissions = submissions.filter(s => s.status === 'Submitted').length;
         const pendingReviewSubmissions = submissions.filter(s => s.status === '人事確認中').length;
         const pendingVideoSubmissions = submissions.filter(s => s.status === '授業審査待ち').length;
         return { ungradedSubmissions, pendingReviewSubmissions, pendingVideoSubmissions };
