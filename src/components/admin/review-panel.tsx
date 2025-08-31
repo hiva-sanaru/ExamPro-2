@@ -136,11 +136,6 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
         if (typeof subAnswer.value === 'string' && subAnswer.value.trim() !== '') {
             return subAnswer.value;
         }
-        // @ts-ignore - a temporary fix for legacy data
-        if (subAnswer.subAnswers && subAnswer.subAnswers.value) {
-           // @ts-ignore
-           return subAnswer.subAnswers.value;
-        }
         return "－";
     }
 
@@ -165,9 +160,9 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
           if (question.subQuestions && question.subQuestions.length > 0) {
               // Grade each sub-question individually
               return question.subQuestions.map(subQ => {
-                  const answerText = getAnswerForQuestion(question.id!, subQ.id);
+                  const answerText = getAnswerForQuestion(question.id!, subQ.id!);
                   if (answerText === "－" || !subQ.modelAnswer) {
-                      return Promise.resolve({ questionId: subQ.id, error: "回答または模範解答がありません" });
+                      return Promise.resolve({ questionId: subQ.id!, error: "回答または模範解答がありません" });
                   }
                   const modelAnswers = Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer];
                   return gradeAnswer({
@@ -176,13 +171,13 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                       gradingCriteria: subQ.gradingCriteria,
                       answerTexts: [answerText],
                       points: subQ.points,
-                  }).then(result => ({ questionId: subQ.id!, ...result }))
-                    .catch(error => ({ questionId: subQ.id!, error: error.message }));
+                  }).then(result => ({ questionId: subQ.id!, ...result, parentId: question.id! }))
+                    .catch(error => ({ questionId: subQ.id!, error: error.message, parentId: question.id! }));
               });
           } else {
               // Grade main question
               const answerValue = getAnswerForQuestion(question.id!);
-              const answerTexts = Array.isArray(answerValue) ? answerValue.filter(t => t.trim() !== '') : [answerValue.toString()];
+              const answerTexts = Array.isArray(answerValue) ? answerValue.filter(t => t && t.trim() !== '') : [answerValue.toString()];
 
               if (answerTexts.length === 0 || answerTexts[0] === "－" || !question.modelAnswer) {
                   return [Promise.resolve({ questionId: question.id, error: "回答または模範解答がありません" })];
@@ -205,35 +200,30 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
       const newAiJustifications: AiJustifications = { ...aiJustifications };
       let hasNewGrading = false;
 
-      // Create a map of sub-question points
-      const subQuestionPoints: { [id: string]: number } = {};
-      exam.questions.forEach(q => {
-          q.subQuestions?.forEach(subQ => {
-              subQuestionPoints[subQ.id!] = subQ.points;
-          });
-      });
-
-      // Process results for sub-questions first
+      // Process results
       exam.questions.forEach(question => {
           if (question.subQuestions && question.subQuestions.length > 0) {
               let mainQuestionScore = 0;
               let mainQuestionJustification = "";
+              let hasSubQuestionGrading = false;
+
               question.subQuestions.forEach(subQ => {
-                  const result = results.find(r => 'questionId' in r && r.questionId === subQ.id);
+                  const result = results.find(r => 'parentId' in r && r.parentId === question.id && r.questionId === subQ.id);
                   if (result && !('error' in result)) {
                       hasNewGrading = true;
-                      // Sub-question scores are not stored individually in manualScores, they are aggregated
+                      hasSubQuestionGrading = true;
                       mainQuestionScore += result.score;
-                      mainQuestionJustification += `小問(${subQ.text}): ${result.justification}\n`;
+                      mainQuestionJustification += `小問(${subQ.text.substring(0,10)}...): ${result.justification}\n`;
                   }
               });
-              if (mainQuestionJustification) {
+
+              if (hasSubQuestionGrading) {
                 newManualScores[question.id!] = mainQuestionScore;
                 newAiJustifications[question.id!] = mainQuestionJustification.trim();
               }
           } else {
-               const result = results.find(r => 'questionId' in r && r.questionId === question.id);
-               if (result && !('error'in result)) {
+               const result = results.find(r => !('parentId' in r) && r.questionId === question.id);
+               if (result && !('error' in result)) {
                   hasNewGrading = true;
                   newManualScores[result.questionId] = result.score;
                   newAiJustifications[result.questionId] = result.justification;
@@ -479,10 +469,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                       ))}
                       <div className="space-y-2 pt-4 border-t">
                           <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
-                          {justification ? (
+                           {justification ? (
                               <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
-                                  <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
-                                  <p><strong>根拠:</strong> {justification}</p>
+                                  <p><strong>合計スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
+                                  <p className="font-medium">根拠:</p>
+                                  <p className="whitespace-pre-wrap">{justification}</p>
                               </div>
                           ) : (
                               <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
@@ -624,7 +615,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                                   {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
                                   {submission.lessonReviewSchoolName && <p><strong>校舎名:</strong> {submission.lessonReviewSchoolName}</p>}
                                   {submission.lessonReviewClassroomName && <p><strong>教室名:</strong> {submission.lessonReviewClassroomName}</p>}
-                               </div>
+                                </div>
                              </div>
                            ) : (
                             <p className="text-destructive">本部担当者によって希望日時が入力されていません。本部担当者に確認してください。</p>
@@ -656,5 +647,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
     </Card>
   );
 }
+
+    
 
     

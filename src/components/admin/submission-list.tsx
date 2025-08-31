@@ -18,12 +18,13 @@ import { cva } from "class-variance-authority";
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import Link from "next/link";
-import { FilePen, Loader2, Trash2, Link as LinkIcon } from "lucide-react";
+import { FilePen, Loader2, Trash2, Link as LinkIcon, ArrowUpDown } from "lucide-react";
 import { updateSubmission, deleteSubmission } from "@/services/submissionService";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { findUserByEmployeeId } from '@/services/userService';
 
+type SortableKeys = keyof Submission | 'examTitle' | 'statusName';
 
 interface SubmissionListProps {
     submissions: Submission[];
@@ -34,10 +35,9 @@ interface SubmissionListProps {
 export function SubmissionList({ submissions, exams, onSubmissionDeleted }: SubmissionListProps) {
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
-
-    // Use a local state to manage submissions to reflect checkbox changes instantly
     const [localSubmissions, setLocalSubmissions] = useState(submissions);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' } | null>({ key: 'submittedAt', direction: 'descending' });
 
     useEffect(() => {
         const fetchLoggedInUser = async () => {
@@ -62,7 +62,7 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
         if (submissions.length > 0 && exams.length > 0) {
             setIsLoading(false);
         }
-        if (submissions.length === 0 && exams.length >= 0) { // exams might be empty, still not loading
+        if (submissions.length === 0 && exams.length >= 0) {
             setIsLoading(false);
         }
     }, [submissions, exams]);
@@ -73,6 +73,76 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
             return acc;
         }, {} as Record<string, Exam>);
     }, [exams]);
+    
+    const getStatusName = (submission: Submission): keyof typeof badgeVariants.propTypes.status => {
+        switch (submission.status) {
+            case 'Submitted': return '本部採点中';
+            case '人事確認中': return '人事確認中';
+            case '授業審査待ち': return '授業審査待ち';
+            case '合格': return '合格';
+            case '不合格': return '不合格';
+            case 'Completed': return '完了';
+            default: return '不明';
+        }
+    }
+
+    const sortedSubmissions = useMemo(() => {
+        let sortableItems = [...localSubmissions];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                let aValue: any;
+                let bValue: any;
+
+                if (sortConfig.key === 'examTitle') {
+                    aValue = examsMap[a.examId]?.title || '';
+                    bValue = examsMap[b.examId]?.title || '';
+                } else if (sortConfig.key === 'statusName') {
+                    aValue = getStatusName(a);
+                    bValue = getStatusName(b);
+                } else {
+                    aValue = a[sortConfig.key as keyof Submission];
+                    bValue = b[sortConfig.key as keyof Submission];
+                }
+
+                if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
+                    if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                }
+                
+                if (aValue instanceof Date && bValue instanceof Date) {
+                    if (aValue.getTime() < bValue.getTime()) return sortConfig.direction === 'ascending' ? -1 : 1;
+                    if (aValue.getTime() > bValue.getTime()) return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return 0;
+                }
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [localSubmissions, sortConfig, examsMap]);
+
+    const requestSort = (key: SortableKeys) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIndicator = (key: SortableKeys) => {
+        if (!sortConfig || sortConfig.key !== key) {
+            return <ArrowUpDown className="ml-2 h-3 w-3" />;
+        }
+        return sortConfig.direction === 'ascending' ? '▲' : '▼';
+    };
+
 
     const handleCheckboxChange = async (submission: Submission) => {
         const updatedStatus = !submission.resultCommunicated;
@@ -139,30 +209,46 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
         }
     )
 
-    const getStatusName = (submission: Submission): keyof typeof badgeVariants.propTypes.status => {
-        switch (submission.status) {
-            case 'Submitted': return '本部採点中';
-            case '人事確認中': return '人事確認中';
-            case '授業審査待ち': return '授業審査待ち';
-            case '合格': return '合格';
-            case '不合格': return '不合格';
-            case 'Completed': return '完了';
-            default: return '不明';
-        }
-    }
-
   return (
     <div className="rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow className="bg-primary hover:bg-primary/90">
-            <TableHead className="text-primary-foreground whitespace-nowrap">試験名</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">受験者名</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap">本部</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap text-center">提出日時</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap text-center">ステータス</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap text-center">授業審査URL</TableHead>
-            <TableHead className="text-primary-foreground whitespace-nowrap text-center">結果伝達</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap">
+                <Button variant="ghost" onClick={() => requestSort('examTitle')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                    試験名 {getSortIndicator('examTitle')}
+                </Button>
+            </TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap">
+                 <Button variant="ghost" onClick={() => requestSort('examineeName')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                    受験者名 {getSortIndicator('examineeName')}
+                </Button>
+            </TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap">
+                 <Button variant="ghost" onClick={() => requestSort('examineeHeadquarters')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                    本部 {getSortIndicator('examineeHeadquarters')}
+                </Button>
+            </TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">
+                 <Button variant="ghost" onClick={() => requestSort('submittedAt')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                    提出日時 {getSortIndicator('submittedAt')}
+                </Button>
+            </TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">
+                 <Button variant="ghost" onClick={() => requestSort('statusName')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                    ステータス {getSortIndicator('statusName')}
+                </Button>
+            </TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">
+                <Button variant="ghost" onClick={() => requestSort('lessonReviewUrl')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                    授業審査URL {getSortIndicator('lessonReviewUrl')}
+                </Button>
+            </TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">
+                <Button variant="ghost" onClick={() => requestSort('resultCommunicated')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                    結果伝達 {getSortIndicator('resultCommunicated')}
+                </Button>
+            </TableHead>
             <TableHead className="text-right text-primary-foreground whitespace-nowrap">アクション</TableHead>
           </TableRow>
         </TableHeader>
@@ -173,14 +259,14 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                 </TableCell>
             </TableRow>
-          ) : localSubmissions.length === 0 ? (
+          ) : sortedSubmissions.length === 0 ? (
              <TableRow>
                 <TableCell colSpan={8} className="h-24 text-center">
                     提出物はまだありません。
                 </TableCell>
             </TableRow>
           ) : (
-            localSubmissions.map((submission) => {
+            sortedSubmissions.map((submission) => {
                 const exam = examsMap[submission.examId];
                 const statusName = getStatusName(submission);
                 return (
@@ -188,7 +274,7 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                         <TableCell className="font-medium whitespace-nowrap">{exam?.title || '－'}</TableCell>
                         <TableCell className="whitespace-nowrap">{submission.examineeName || '－'}</TableCell>
                         <TableCell className="whitespace-nowrap">{submission.examineeHeadquarters?.replace('本部', '') || '－'}</TableCell>
-                        <TableCell className="whitespace-nowrap text-center">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd", { locale: ja })}</TableCell>
+                        <TableCell className="whitespace-nowrap text-center">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd HH:mm", { locale: ja })}</TableCell>
                         <TableCell className="text-center whitespace-nowrap">
                             <Badge variant="outline" className={badgeVariants({ status: statusName })}>
                                 {statusName}
@@ -260,3 +346,5 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
     </div>
   );
 }
+
+    

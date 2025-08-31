@@ -11,7 +11,7 @@ export async function getSubmissions(): Promise<Submission[]> {
     return snapshot.docs.map(doc => {
         const data = doc.data();
         // Ensure submittedAt is converted to Date, handling potential undefined
-        const submittedAt = data.submittedAt ? data.submittedAt.toDate() : new Date();
+        const submittedAt = data.submittedAt ? data.submittedAt.toDate() : new Date(0); // Fallback to epoch
         return {
             id: doc.id,
             ...data,
@@ -65,3 +65,5 @@ export async function deleteSubmission(submissionId: string): Promise<void> {
     const docRef = doc(db, 'submissions', submissionId);
     await deleteDoc(docRef);
 }
+
+    
