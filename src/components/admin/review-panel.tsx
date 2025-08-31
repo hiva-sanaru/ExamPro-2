@@ -93,8 +93,9 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
 
   const totalScore = useMemo(() => {
+    if (!exam) return 0; // Handle case where exam might be null for lesson-review-only
     return Object.values(manualScores).reduce((acc, score) => acc + (score || 0), 0);
-  }, [manualScores]);
+  }, [manualScores, exam]);
   
   useEffect(() => {
     if (finalOutcome === undefined && isPersonnelOfficeView) {
@@ -187,7 +188,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   };
   
   const handleGradeAllQuestions = async () => {
-      if (reviewerRole === "人事室") return;
+      if (reviewerRole === "人事室" || !exam) return;
       setIsBulkGrading(true);
       toast({ title: "全問題のAI採点を開始しました...", description: "完了まで数秒お待ちください。" });
 
@@ -326,7 +327,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             questionGrades: questionGrades
         };
 
-        if (totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission') {
+        if (exam && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission') {
             if (!date1 || !time1) {
                 toast({ title: "入力エラー", description: "授業審査の第一希望日時を入力してください。", variant: "destructive"});
                 setIsSubmitting(false);
@@ -368,7 +369,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         dataToUpdate.finalScore = totalScore;
         dataToUpdate.finalOutcome = finalOutcome;
 
-        if (finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
+        if (exam && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
             newStatus = '授業審査待ち';
         } else if (finalOutcome === 'Passed') {
             newStatus = '合格';
@@ -393,10 +394,10 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     }
   }
 
-  const showLessonReviewForm = reviewerRole === '本部' && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
+  const showLessonReviewForm = reviewerRole === '本部' && exam && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
   const hasAiGradingData = Object.keys(aiJustifications).length > 0;
   
-  if (submission.examId === 'lesson-review-only') {
+  if (submission.examId === 'lesson-review-only' || !exam) {
     return (
        <Card>
           <CardHeader>
@@ -728,7 +729,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                     </Card>
                 )}
 
-                {isPersonnelOfficeView && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
+                {isPersonnelOfficeView && exam && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
                      <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
                         <CardHeader>
                              <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>

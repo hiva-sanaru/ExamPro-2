@@ -95,8 +95,8 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                 let bValue: any;
 
                 if (sortConfig.key === 'examTitle') {
-                    aValue = examsMap[a.examId]?.title || '';
-                    bValue = examsMap[b.examId]?.title || '';
+                    aValue = examsMap[a.examId]?.title || (a.examId === 'lesson-review-only' ? '授業動画提出' : '');
+                    bValue = examsMap[b.examId]?.title || (b.examId === 'lesson-review-only' ? '授業動画提出' : '');
                 } else if (sortConfig.key === 'statusName') {
                     aValue = getStatusName(a);
                     bValue = getStatusName(b);
@@ -271,9 +271,10 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                 sortedSubmissions.map((submission) => {
                     const exam = examsMap[submission.examId];
                     const statusName = getStatusName(submission);
+                    const examTitle = exam?.title || (submission.examId === 'lesson-review-only' ? '授業動画提出' : '－');
                     return (
                         <TableRow key={submission.id}>
-                            <TableCell className="font-medium whitespace-nowrap">{exam?.title || '－'}</TableCell>
+                            <TableCell className="font-medium whitespace-nowrap">{examTitle}</TableCell>
                             <TableCell className="whitespace-nowrap">{submission.examineeName || '－'}</TableCell>
                             <TableCell className="whitespace-nowrap">{submission.examineeHeadquarters?.replace('本部', '') || '－'}</TableCell>
                             <TableCell className="whitespace-nowrap text-center">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd HH:mm", { locale: ja })}</TableCell>
@@ -356,5 +357,3 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
     </TooltipProvider>
   );
 }
-
-    
