@@ -15,6 +15,26 @@ import { findUserByEmployeeId } from "@/services/userService";
 import type { Submission, Exam, User } from "@/lib/types";
 
 
+const getStatusInJapanese = (status: Submission['status']): string => {
+    switch (status) {
+      case 'Submitted':
+        return '本部採点中';
+      case '人事確認中':
+        return '人事確認中';
+      case '授業審査待ち':
+        return '授業審査待ち';
+      case '合格':
+        return '合格';
+      case '不合格':
+        return '不合格';
+      case 'Completed':
+         return '完了';
+      default:
+        return status;
+    }
+  };
+
+
 export default function AdminReviewPage() {
     const router = useRouter();
     const params = useParams();
@@ -174,7 +194,7 @@ export default function AdminReviewPage() {
                     </div>
                      <div className="flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-muted-foreground" />
-                        <strong>ステータス:</strong> <span>{submission.status}</span>
+                        <strong>ステータス:</strong> <span>{getStatusInJapanese(submission.status)}</span>
                     </div>
                 </CardContent>
             </Card>
