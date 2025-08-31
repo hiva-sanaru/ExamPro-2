@@ -2,12 +2,12 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Loader2, Clock3, FileText, Upload } from "lucide-react";
+import { ArrowRight, Loader2, Clock3, FileText, Upload, Youtube } from "lucide-react";
 import { getExams } from "@/services/examService";
 import type { Exam } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +38,10 @@ function ExamineePortal() {
         }
         fetchData();
     }, [toast]);
+    
+    const urlSubmissionExams = useMemo(() => {
+        return exams.filter(e => e.type === 'WrittenAndInterview' && e.lessonReviewType === 'UrlSubmission');
+    }, [exams]);
 
     return (
         <main className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-primary/5 via-transparent to-transparent p-4 sm:p-8">
@@ -121,15 +125,30 @@ function ExamineePortal() {
                 <Card className="bg-card/80 backdrop-blur-sm">
                     <CardHeader>
                         <CardTitle>授業動画の提出</CardTitle>
-                        <CardDescription>筆記試験とは別に、授業審査用の動画URLをいつでも提出できます。</CardDescription>
+                        <CardDescription>
+                            以下の試験では、筆記試験合格後に授業審査用の動画URLを提出する必要があります。
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex justify-end">
-                        <Button asChild className="bg-green-600 hover:bg-green-700">
-                            <Link href="/submit-lesson">
-                                <Upload className="mr-2 h-4 w-4" />
-                                授業動画URLを提出する
-                            </Link>
-                        </Button>
+                    <CardContent>
+                        <div className="space-y-2">
+                           {urlSubmissionExams.length > 0 ? (
+                                <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                                    {urlSubmissionExams.map(exam => (
+                                        <li key={exam.id}>{exam.title}</li>
+                                    ))}
+                                </ul>
+                           ) : (
+                                <p className="text-sm text-muted-foreground">現在、授業動画のURL提出が設定されている試験はありません。</p>
+                           )}
+                        </div>
+                        <div className="mt-4 flex justify-end">
+                            <Button asChild className="bg-green-600 hover:bg-green-700">
+                                <Link href="/submit-lesson">
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    授業動画URLを提出する
+                                </Link>
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
