@@ -88,5 +88,3 @@ export interface ExamineeInfo {
   name: string;
   headquarters: string;
 }
-
-    

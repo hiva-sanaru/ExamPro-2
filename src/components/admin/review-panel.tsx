@@ -69,18 +69,27 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
 
   const isActionDisabled = useMemo(() => {
+    // System admin can always take action
     if (currentUser.role === 'system_administrator') {
         return false;
     }
+    
+    // PO can only be modified by system_admin, so disable for others
     if (isPersonnelOfficeView) {
-        return true; // Only system admins can act on PO view
+        return true; 
     }
+    
     // HQ view, check if user is hq_administrator and belongs to the submission's HQ
     if(currentUser.role === 'hq_administrator'){
-        return submission.status !== 'Submitted' && submission.status !== '本部採点中';
+       if (submission.examId === 'lesson-review-only') {
+         return submission.status !== '授業審査待ち' && submission.status !== '人事確認中';
+       }
+       return submission.status !== 'Submitted' && submission.status !== '本部採点中';
     }
+    
+    // Default to disabled for any other case (e.g. examinee trying to view)
     return true;
-  }, [currentUser, isPersonnelOfficeView, submission.examineeHeadquarters, submission.status]);
+  }, [currentUser, isPersonnelOfficeView, submission.status, submission.examId]);
 
 
   const totalScore = useMemo(() => {
@@ -122,15 +131,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     setManualScores(initialScores);
     setAiJustifications(initialJustifications);
     setOverallFeedback(gradeData?.justification || '');
-
-    // Set reviewer name logic
-    if (reviewerRole === '本部') {
-        // If there's already a name saved for HQ, use it. Otherwise, it remains empty for manual input.
-        setReviewerName(submission.hqGrade?.reviewerName || '');
-    } else { // Personnel Office
-        // If there's a name for PO, use it. Otherwise, use current user's name as default.
-        setReviewerName(submission.poGrade?.reviewerName || (currentUser.role === 'system_administrator' ? currentUser.name : ''));
-    }
+    setReviewerName(gradeData?.reviewerName || '');
 
 
     if (reviewerRole === "人事室") {
@@ -273,8 +274,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
               const questionGrades: { [key: string]: QuestionGrade } = {};
               for (const qId in newManualScores) {
                   const grade: QuestionGrade = { score: newManualScores[qId] ?? 0 };
-                  if (newAiJustifications[qId]) {
-                      grade.justification = newAiJustifications[qId];
+                  if (aiJustifications[qId]) {
+                      grade.justification = aiJustifications[qId];
                   }
                   questionGrades[qId] = grade;
               }
@@ -394,6 +395,91 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
   const showLessonReviewForm = reviewerRole === '本部' && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
   const hasAiGradingData = Object.keys(aiJustifications).length > 0;
+  
+  if (submission.examId === 'lesson-review-only') {
+    return (
+       <Card>
+          <CardHeader>
+            <CardTitle className="font-headline">授業動画レビュー</CardTitle>
+            <CardDescription>
+                提出された授業動画のURLを確認し、評価を入力してください。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <div>
+                <Label>提出されたURL</Label>
+                {submission.lessonReviewUrl ? (
+                    <a href={submission.lessonReviewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline block truncate">
+                        {submission.lessonReviewUrl}
+                    </a>
+                ): (
+                    <p className="text-muted-foreground">URLが提出されていません。</p>
+                )}
+              </div>
+          </CardContent>
+          <CardFooter className="flex flex-col items-stretch gap-4">
+            <fieldset disabled={isActionDisabled} className="disabled:opacity-70">
+                <div className="border-t pt-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-headline">最終評価</h3>
+                    </div>
+                     <div className="space-y-4 my-4">
+                        <Label>最終的な合否</Label>
+                        <div className="flex gap-4">
+                            <Button 
+                                onClick={() => setFinalOutcome('Passed')}
+                                variant={finalOutcome === 'Passed' ? 'default' : 'outline'}
+                                className={cn("flex-1", finalOutcome === 'Passed' && "bg-green-600 hover:bg-green-700")}
+                            >
+                                <ThumbsUp className="mr-2 h-4 w-4" />
+                                合格
+                            </Button>
+                            <Button 
+                                onClick={() => setFinalOutcome('Failed')}
+                                variant={finalOutcome === 'Failed' ? 'destructive' : 'outline'}
+                                 className="flex-1"
+                            >
+                                <ThumbsDown className="mr-2 h-4 w-4" />
+                                不合格
+                            </Button>
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className="w-full space-y-2">
+                            <Label htmlFor="overall-feedback">
+                                {isPersonnelOfficeView ? "人事室からの特記事項 (最終承認)" : "特記事項"}
+                            </Label>
+                            <Textarea 
+                                id="overall-feedback" 
+                                placeholder="この提出物に関する特記事項を記入してください..." 
+                                value={overallFeedback}
+                                onChange={(e) => setOverallFeedback(e.target.value)}
+                            />
+                        </div>
+                         <div className="w-full space-y-2">
+                            <Label htmlFor="reviewer-name">
+                               {isPersonnelOfficeView ? "承認者名" : "採点者名"}
+                            </Label>
+                            <Input 
+                                id="reviewer-name" 
+                                placeholder="採点者の氏名を入力してください"
+                                value={reviewerName}
+                                onChange={(e) => setReviewerName(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div className="flex justify-end w-full">
+                    <Button onClick={handleSubmitReview} disabled={isSubmitting || isActionDisabled} size="lg">
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check />}
+                        {isSubmitting ? "送信中..." : isPersonnelOfficeView ? "最終承認して完了" : "レビューを送信"}
+                    </Button>
+                </div>
+            </fieldset>
+          </CardFooter>
+       </Card>
+    )
+  }
 
   return (
     <Card>
@@ -706,6 +792,3 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
-
-    
-

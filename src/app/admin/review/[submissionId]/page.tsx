@@ -4,7 +4,7 @@ import { ReviewPanel } from "@/components/admin/review-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { notFound, useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User as UserIcon, Calendar, CheckCircle, AlertTriangle, ShieldCheck, Loader2, Building, Hash } from "lucide-react";
+import { User as UserIcon, Calendar, CheckCircle, AlertTriangle, ShieldCheck, Loader2, Building, Hash, Link as LinkIcon, Youtube } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -72,11 +72,15 @@ export default function AdminReviewPage() {
                     return;
                 }
 
-                const ex = await getExam(sub.examId);
-                if (!ex) {
-                    setError("Exam not found for this submission.");
-                    setIsLoading(false);
-                    return;
+                // If it's a lesson-review-only submission, we don't need to fetch an exam
+                let ex: Exam | null = null;
+                if (sub.examId !== 'lesson-review-only') {
+                    ex = await getExam(sub.examId);
+                    if (!ex) {
+                        setError("Exam not found for this submission.");
+                        setIsLoading(false);
+                        return;
+                    }
                 }
                 
                 const employeeId = localStorage.getItem('loggedInUserEmployeeId');
@@ -130,7 +134,7 @@ export default function AdminReviewPage() {
         );
     }
     
-    if (!submission || !exam || !currentUser) {
+    if (!submission || !currentUser) {
         notFound();
     }
     
@@ -156,12 +160,14 @@ export default function AdminReviewPage() {
         )
     }
 
+    const pageTitle = submission.examId === 'lesson-review-only' ? '授業動画レビュー' : '提出物のレビュー';
+    const pageDescription = submission.examId === 'lesson-review-only' ? '提出された授業動画のURLを確認します。' : `試験の採点: "${exam?.title}"`;
 
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold font-headline">提出物のレビュー</h1>
-                <p className="text-muted-foreground">試験の採点: "{exam.title}"</p>
+                <h1 className="text-3xl font-bold font-headline">{pageTitle}</h1>
+                <p className="text-muted-foreground">{pageDescription}</p>
             </div>
 
              {currentUser.role === 'system_administrator' && (
@@ -196,13 +202,22 @@ export default function AdminReviewPage() {
                         <CheckCircle className="w-4 h-4 text-muted-foreground" />
                         <strong>ステータス:</strong> <span>{getStatusInJapanese(submission.status)}</span>
                     </div>
+                     {submission.lessonReviewUrl && (
+                        <div className="flex items-center gap-2">
+                            <Youtube className="w-4 h-4 text-muted-foreground" />
+                            <strong>動画URL:</strong> 
+                            <a href={submission.lessonReviewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline truncate">
+                                リンクを開く
+                            </a>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
             <Tabs defaultValue="hq" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="hq" className="font-headline">
-                        本部採点
+                        本部レビュー
                     </TabsTrigger>
                     <TabsTrigger value="po" className="font-headline">
                         人事室レビュー
@@ -210,7 +225,7 @@ export default function AdminReviewPage() {
                 </TabsList>
                 <TabsContent value="hq">
                    <ReviewPanel
-                        exam={exam}
+                        exam={exam!}
                         submission={submission}
                         reviewerRole="本部"
                         currentUser={currentUser}
@@ -219,7 +234,7 @@ export default function AdminReviewPage() {
                 </TabsContent>
                 <TabsContent value="po">
                     <ReviewPanel
-                        exam={exam}
+                        exam={exam!}
                         submission={submission}
                         reviewerRole="人事室"
                         currentUser={currentUser}

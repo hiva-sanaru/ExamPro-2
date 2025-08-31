@@ -7,51 +7,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Loader2, Clock3, FileText, Upload, Search, Hash } from "lucide-react";
+import { ArrowRight, Loader2, Clock3, FileText, Upload } from "lucide-react";
 import { getExams } from "@/services/examService";
-import { getSubmissions } from "@/services/submissionService";
-import type { Exam, Submission } from "@/lib/types";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import type { Exam } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
 
 function ExamineePortal() {
     const [exams, setExams] = useState<Exam[]>([]);
-    const [submissions, setSubmissions] = useState<Submission[]>([]);
-    const [employeeIdInput, setEmployeeIdInput] = useState('');
-    const [queriedExamineeId, setQueriedExamineeId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isCheckingStatus, setIsCheckingStatus] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
-        // On initial load, try to get employeeId from localStorage for convenience
-        const info = localStorage.getItem('exam-examinee-info');
-        if (info) {
-            try {
-                const parsedInfo = JSON.parse(info);
-                if(parsedInfo.employeeId) {
-                    setEmployeeIdInput(parsedInfo.employeeId);
-                    setQueriedExamineeId(parsedInfo.employeeId);
-                }
-            } catch(e) {
-                console.error("Could not parse examinee info from localStorage", e);
-                localStorage.removeItem('exam-examinee-info'); // Clear corrupted data
-            }
-        }
-
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [allExams, allSubmissions] = await Promise.all([
-                    getExams(),
-                    getSubmissions()
-                ]);
-
+                const allExams = await getExams();
                 setExams(allExams.filter(e => e.status === 'Published'));
-                setSubmissions(allSubmissions);
-
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
                  toast({
@@ -65,29 +37,6 @@ function ExamineePortal() {
         }
         fetchData();
     }, [toast]);
-    
-    const handleCheckStatus = () => {
-        setIsCheckingStatus(true);
-        if (employeeIdInput && employeeIdInput.length === 8) {
-            setQueriedExamineeId(employeeIdInput);
-            toast({
-                title: "状況確認",
-                description: `社員番号: ${employeeIdInput} の受験状況を表示します。`,
-            });
-        } else {
-             toast({
-                title: "入力エラー",
-                description: "有効な8桁の社員番号を入力してください。",
-                variant: "destructive"
-            });
-        }
-        setIsCheckingStatus(false);
-    }
-
-
-    const userSubmissions = queriedExamineeId
-      ? submissions.filter(s => s.examineeId === queriedExamineeId)
-      : [];
 
     return (
         <main className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-primary/5 via-transparent to-transparent p-4 sm:p-8">
@@ -98,44 +47,30 @@ function ExamineePortal() {
                         SANARUスタッフ昇給試験サイト
                     </h1>
                     <p className="mx-auto max-w-2xl text-muted-foreground text-base sm:text-lg">
-                        受験したい試験を選択して、指示に従ってください。
+                        受験したい筆記試験を選択するか、授業動画を提出してください。
                     </p>
                 </header>
 
                 <Card className="bg-card/80 backdrop-blur-sm">
                     <CardHeader>
-                        <CardTitle>受験状況の確認</CardTitle>
-                        <CardDescription>URL提出など、次のステップに進むには社員番号を入力して状況を確認してください。</CardDescription>
+                        <CardTitle>授業動画の提出</CardTitle>
+                        <CardDescription>筆記試験とは別に、授業審査用の動画URLをいつでも提出できます。</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="flex flex-col sm:flex-row gap-4 max-w-md">
-                           <div className="flex-grow space-y-2">
-                                <Label htmlFor="employeeId">社員番号</Label>
-                                 <div className="relative">
-                                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input 
-                                        id="employeeId"
-                                        value={employeeIdInput}
-                                        onChange={(e) => setEmployeeIdInput(e.target.value)}
-                                        placeholder="8桁の社員番号"
-                                        maxLength={8}
-                                        className="pl-10"
-                                    />
-                                </div>
-                           </div>
-                            <Button onClick={handleCheckStatus} disabled={isCheckingStatus} className="self-end">
-                                {isCheckingStatus ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                                状況を確認
-                            </Button>
-                        </div>
+                        <Button asChild className="bg-green-600 hover:bg-green-700">
+                            <Link href="/submit-lesson">
+                                <Upload className="mr-2 h-4 w-4" />
+                                授業動画URLを提出する
+                            </Link>
+                        </Button>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader>
                         <div>
-                            <CardTitle>受験可能な試験</CardTitle>
-                            <CardDescription>{isLoading ? "読み込み中..." : exams.length > 0 ? `${exams.length} 件の試験が利用可能です。` : "現在、受験可能な試験はありません。"}</CardDescription>
+                            <CardTitle>受験可能な筆記試験</CardTitle>
+                            <CardDescription>{isLoading ? "読み込み中..." : exams.length > 0 ? `${exams.length} 件の試験が利用可能です。` : "現在、受験可能な筆記試験はありません。"}</CardDescription>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -157,9 +92,6 @@ function ExamineePortal() {
                         ) : exams.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {exams.map((exam) => {
-                                    const submissionForExam = userSubmissions.find(s => s.examId === exam.id);
-                                    const needsUrlSubmission = submissionForExam?.status === '授業審査待ち' && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'UrlSubmission';
-
                                     return (
                                         <div key={exam.id} className="flex flex-col gap-4 rounded-lg border p-4">
                                             <div className="space-y-2">
@@ -181,21 +113,12 @@ function ExamineePortal() {
                                                 </div>
                                             </div>
                                             <div className="mt-auto flex justify-end">
-                                                {needsUrlSubmission ? (
-                                                     <Button asChild aria-label={`${exam.title} のURLを提出する`} className="bg-green-600 hover:bg-green-700">
-                                                        <Link href={`/exam/${exam.id}/submit-lesson?submissionId=${submissionForExam.id}`}>
-                                                            <Upload className="mr-2 h-4 w-4" />
-                                                            授業動画URLを提出
-                                                        </Link>
-                                                    </Button>
-                                                ) : (
-                                                    <Button asChild aria-label={`${exam.title} を受験する`}>
-                                                        <Link href={`/exam/${exam.id}/start`}>
-                                                            受験する
-                                                            <ArrowRight className="ml-2 h-4 w-4" />
-                                                        </Link>
-                                                    </Button>
-                                                )}
+                                                <Button asChild aria-label={`${exam.title} を受験する`}>
+                                                    <Link href={`/exam/${exam.id}/start`}>
+                                                        受験する
+                                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                                    </Link>
+                                                </Button>
                                             </div>
                                         </div>
                                     )
