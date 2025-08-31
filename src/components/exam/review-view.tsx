@@ -76,19 +76,12 @@ export function ReviewView({ exam }: ReviewViewProps) {
     }
     setIsLoading(true);
     try {
-        const submissionAnswers = answers.map(answer => {
-            if (answer.subAnswers && answer.subAnswers.length > 0 && !answer.value) {
-                return { ...answer, value: '' }; 
-            }
-            return answer;
-        });
-
         await addSubmission({
             examId: exam.id,
             examineeId: examineeInfo.employeeId,
             examineeName: examineeInfo.name,
             examineeHeadquarters: examineeInfo.headquarters,
-            answers: submissionAnswers,
+            answers: answers,
         });
 
         toast({
