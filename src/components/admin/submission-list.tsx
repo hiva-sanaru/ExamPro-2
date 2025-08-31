@@ -18,7 +18,7 @@ import { cva } from "class-variance-authority";
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import Link from "next/link";
-import { FilePen, Loader2, Trash2 } from "lucide-react";
+import { FilePen, Loader2, Trash2, Link as LinkIcon } from "lucide-react";
 import { updateSubmission, deleteSubmission } from "@/services/submissionService";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
@@ -161,6 +161,7 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
             <TableHead className="text-primary-foreground whitespace-nowrap">本部</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap text-center">提出日時</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap text-center">ステータス</TableHead>
+            <TableHead className="text-primary-foreground whitespace-nowrap text-center">授業審査URL</TableHead>
             <TableHead className="text-primary-foreground whitespace-nowrap text-center">結果伝達</TableHead>
             <TableHead className="text-right text-primary-foreground whitespace-nowrap">アクション</TableHead>
           </TableRow>
@@ -168,13 +169,13 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
         <TableBody>
           {isLoading ? (
             <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                 </TableCell>
             </TableRow>
           ) : localSubmissions.length === 0 ? (
              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                     提出物はまだありません。
                 </TableCell>
             </TableRow>
@@ -193,6 +194,17 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                                 {statusName}
                             </Badge>
                         </TableCell>
+                        <TableCell className="text-center whitespace-nowrap">
+                          {submission.lessonReviewUrl ? (
+                            <Button variant="ghost" size="icon" asChild>
+                              <a href={submission.lessonReviewUrl} target="_blank" rel="noopener noreferrer">
+                                <LinkIcon className="h-4 w-4 text-blue-500" />
+                              </a>
+                            </Button>
+                          ) : (
+                            '－'
+                          )}
+                        </TableCell>
                          <TableCell className="text-center whitespace-nowrap">
                              <Checkbox 
                                 id={`comm-${submission.id}`}
@@ -210,26 +222,28 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                                         <span className="sr-only">採点</span>
                                     </Link>
                                 </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button variant="destructive" size="icon">
-                                            <Trash2 className="h-4 w-4" />
-                                            <span className="sr-only">削除</span>
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                この操作は元に戻すことはできません。この提出物と関連するすべての採点データが完全に削除されます。
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDelete(submission.id)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+                                {currentUser?.role === 'system_administrator' && (
+                                  <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                          <Button variant="destructive" size="icon">
+                                              <Trash2 className="h-4 w-4" />
+                                              <span className="sr-only">削除</span>
+                                          </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                              <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                  この操作は元に戻すことはできません。この提出物と関連するすべての採点データが完全に削除されます。
+                                              </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                              <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => handleDelete(submission.id)} className="bg-destructive hover:bg-destructive/90">削除</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                  </AlertDialog>
+                                )}
                             </div>
                         </TableCell>
                     </TableRow>

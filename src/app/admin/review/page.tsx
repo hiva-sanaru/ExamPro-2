@@ -6,24 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getExams } from '@/services/examService';
 import { getSubmissions } from '@/services/submissionService';
-import type { Submission, Exam } from '@/lib/types';
+import type { Submission, Exam, User } from '@/lib/types';
 import { FileText } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
+import { findUserByEmployeeId } from '@/services/userService';
 
 export default function ReviewListPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     async function fetchData() {
         try {
-            const [fetchedExams, fetchedSubmissions] = await Promise.all([
+            const [fetchedExams, fetchedSubmissions, user] = await Promise.all([
                 getExams(),
-                getSubmissions()
+                getSubmissions(),
+                findUserByEmployeeId(localStorage.getItem('loggedInUserEmployeeId') || '')
             ]);
             setExams(fetchedExams);
             setSubmissions(fetchedSubmissions);
+            setCurrentUser(user);
         } catch (error) {
             console.error("Failed to fetch data for export", error);
         }
@@ -117,6 +121,10 @@ export default function ReviewListPage() {
         setSubmissions(prev => prev.filter(s => s.id !== submissionId));
     };
 
+    const filteredSubmissions = currentUser?.role === 'hq_administrator'
+        ? submissions.filter(s => s.examineeHeadquarters === currentUser.headquarters)
+        : submissions;
+
   return (
     <div className="space-y-6">
       <div>
@@ -137,7 +145,7 @@ export default function ReviewListPage() {
         </CardHeader>
         <CardContent>
           <SubmissionList 
-            submissions={submissions} 
+            submissions={filteredSubmissions} 
             exams={exams} 
             onSubmissionDeleted={handleSubmissionDeleted}
           />

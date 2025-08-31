@@ -7,20 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Loader2, Clock3, FileText } from "lucide-react";
+import { ArrowRight, Loader2, Clock3, FileText, Upload } from "lucide-react";
 import { getExams } from "@/services/examService";
-import type { Exam } from "@/lib/types";
+import { getSubmissions } from "@/services/submissionService"; // Import submission service
+import type { Exam, Submission, ExamineeInfo } from "@/lib/types"; // Import submission type
 
 function ExamineePortal() {
     const [exams, setExams] = useState<Exam[]>([]);
+    const [submissions, setSubmissions] = useState<Submission[]>([]);
+    const [examineeInfo, setExamineeInfo] = useState<ExamineeInfo | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        const info = localStorage.getItem('exam-examinee-info');
+        if (info) {
+            setExamineeInfo(JSON.parse(info));
+        }
+
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const allExams = await getExams();
+                const [allExams, allSubmissions] = await Promise.all([
+                    getExams(),
+                    getSubmissions()
+                ]);
+
                 setExams(allExams.filter(e => e.status === 'Published'));
+                setSubmissions(allSubmissions);
+
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
             } finally {
@@ -30,6 +44,9 @@ function ExamineePortal() {
         fetchData();
     }, []);
 
+    const userSubmissions = examineeInfo 
+      ? submissions.filter(s => s.examineeId === examineeInfo.employeeId)
+      : [];
 
     return (
         <main className="relative flex min-h-screen flex-col items-center bg-gradient-to-b from-primary/5 via-transparent to-transparent p-4 sm:p-8">
@@ -70,36 +87,50 @@ function ExamineePortal() {
                             </div>
                         ) : exams.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {exams.map((exam) => (
-                                    <div key={exam.id} className="flex flex-col justify-between rounded-lg border p-4">
-                                        <div className="space-y-2">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <h3 className="font-semibold leading-tight">{exam.title}</h3>
-                                                {exam.type && (
-                                                    <Badge variant="outline" className="ml-2 whitespace-nowrap">{exam.type}</Badge>
+                                {exams.map((exam) => {
+                                    const submissionForExam = userSubmissions.find(s => s.examId === exam.id);
+                                    const needsUrlSubmission = submissionForExam?.status === '授業審査待ち' && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'UrlSubmission';
+
+                                    return (
+                                        <div key={exam.id} className="flex flex-col justify-between rounded-lg border p-4">
+                                            <div className="space-y-2">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <h3 className="font-semibold leading-tight">{exam.title}</h3>
+                                                    {exam.type && (
+                                                        <Badge variant="outline" className="ml-2 whitespace-nowrap">{exam.type === 'WrittenAndInterview' ? '筆記＋授業審査' : '筆記のみ'}</Badge>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <Clock3 className="h-4 w-4" />
+                                                        {exam.duration}分
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <FileText className="h-4 w-4" />
+                                                        合計{exam.totalPoints}点
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="mt-4">
+                                                {needsUrlSubmission ? (
+                                                     <Button asChild aria-label={`${exam.title} のURLを提出する`} className="bg-green-600 hover:bg-green-700">
+                                                        <Link href={`/exam/${exam.id}/submit-lesson?submissionId=${submissionForExam.id}`}>
+                                                            <Upload className="mr-2 h-4 w-4" />
+                                                            授業動画URLを提出
+                                                        </Link>
+                                                    </Button>
+                                                ) : (
+                                                    <Button asChild aria-label={`${exam.title} を受験する`}>
+                                                        <Link href={`/exam/${exam.id}/start`}>
+                                                            受験する
+                                                            <ArrowRight className="ml-2 h-4 w-4" />
+                                                        </Link>
+                                                    </Button>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                <span className="inline-flex items-center gap-1">
-                                                    <Clock3 className="h-4 w-4" />
-                                                    {exam.duration}分
-                                                </span>
-                                                <span className="inline-flex items-center gap-1">
-                                                    <FileText className="h-4 w-4" />
-                                                    合計{exam.totalPoints}点
-                                                </span>
-                                            </div>
                                         </div>
-                                        <div className="mt-4">
-                                            <Button asChild aria-label={`${exam.title} を受験する`}>
-                                                <Link href={`/exam/${exam.id}/start`}>
-                                                    受験する
-                                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center text-center text-muted-foreground py-12">
