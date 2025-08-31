@@ -77,11 +77,14 @@ export default function ReviewListPage() {
                 const dateObj = date.toDate ? date.toDate() : new Date(date);
                 return formatInTimeZone(dateObj, 'Asia/Tokyo', "yyyy-MM-dd HH:mm", { locale: ja });
             }
+            
+            // Format employeeId to be treated as text in Excel
+            const excelEmployeeId = `="${submission.examineeId || "－"}"`;
 
             return [
                 exam?.title || "－",
                 submission.examineeName || "－",
-                submission.examineeId || "－",
+                excelEmployeeId,
                 submission.examineeHeadquarters || "－",
                 formatDate(submission.submittedAt),
                 getStatusInJapanese(submission.status),
@@ -94,9 +97,9 @@ export default function ReviewListPage() {
                 submission.lessonReviewSchoolName ?? "－",
                 submission.lessonReviewClassroomName ?? "－",
             ].map(value => {
-                const str = String(value);
+                const str = String(value).replace('"', '""'); // Escape double quotes
                 if (str.includes(',')) {
-                    return `"${str.replace(/"/g, '""')}"`;
+                    return `"${str}"`;
                 }
                 return str;
             }).join(',');
