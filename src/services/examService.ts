@@ -51,10 +51,12 @@ export async function addExam(examData: Omit<Exam, 'id'>): Promise<string> {
 // Update an existing exam
 export async function updateExam(examId: string, examData: Partial<Omit<Exam, 'id'>>): Promise<void> {
     const docRef = doc(db, 'exams', examId);
-    let dataToUpdate = { ...examData };
+    
+    // Create a mutable copy
+    let dataToUpdate: Partial<Exam> = { ...examData };
 
-    if (examData.questions) {
-        const questionsWithIds = examData.questions.map(q => ({
+    if (dataToUpdate.questions) {
+        const questionsWithIds = dataToUpdate.questions.map(q => ({
             ...q,
             id: q.id || uuidv4(),
             subQuestions: q.subQuestions?.map(subQ => ({ ...subQ, id: subQ.id || uuidv4() }))
@@ -62,6 +64,13 @@ export async function updateExam(examId: string, examData: Partial<Omit<Exam, 'i
         dataToUpdate.questions = questionsWithIds;
     }
     
+    // Firestore does not support 'undefined' values. We need to clean the object.
+    Object.keys(dataToUpdate).forEach(key => {
+        if ((dataToUpdate as any)[key] === undefined) {
+            delete (dataToUpdate as any)[key];
+        }
+    });
+
     await updateDoc(docRef, dataToUpdate);
 }
 
