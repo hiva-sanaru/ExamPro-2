@@ -112,22 +112,22 @@ export function ExamList({ isAdmin }: ExamListProps) {
         <TableBody>
           {exams.map((exam) => (
             <TableRow key={exam.id}>
-              <TableCell className="font-medium">{exam.title}</TableCell>
-              <TableCell>
+              <TableCell className="font-medium text-center">{exam.title}</TableCell>
+              <TableCell className="text-center">
                 <Badge variant="outline" className={badgeVariants({ status: exam.status })}>
                   {exam.status === 'Published' ? '公開' : exam.status === 'Draft' ? '下書き' : 'アーカイブ済み'}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-center">
                  <Badge variant={exam.type === 'WrittenAndInterview' ? "destructive" : "secondary"}>
                     {exam.type === 'WrittenAndInterview' ? '筆記＋授業審査' : '筆記のみ'}
                  </Badge>
               </TableCell>
-              <TableCell>{exam.questions.length} 問</TableCell>
-              <TableCell>{exam.totalPoints} 点</TableCell>
-              <TableCell>{exam.duration} 分</TableCell>
+              <TableCell className="text-center">{exam.questions.length} 問</TableCell>
+              <TableCell className="text-center">{exam.totalPoints} 点</TableCell>
+              <TableCell className="text-center">{exam.duration} 分</TableCell>
               <TableCell className="text-right">
-                <div className="flex justify-end items-center gap-2">
+                <div className="flex justify-center items-center gap-2">
                     <Button variant="outline" size="icon" asChild>
                         <Link href={`/exam/${exam.id}`}>
                             <Eye className="h-4 w-4" />
