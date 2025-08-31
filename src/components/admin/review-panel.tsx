@@ -407,8 +407,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         <span>{submission.hqGrade.score} / {exam.totalPoints}</span>
                     </div>
                      <div className="space-y-1 pt-2">
-                        <Label>当初の全体フィードバック</Label>
-                        <p className="text-sm p-2 bg-background rounded-md">{submission.hqGrade.justification || "フィードバックはありません。"}</p>
+                        <Label>当初の特記事項</Label>
+                        <p className="text-sm p-2 bg-background rounded-md">{submission.hqGrade.justification || "特記事項はありません。"}</p>
                     </div>
                     {submission.lessonReviewDate1 && (
                         <div className="space-y-2 pt-4 border-t mt-4">
@@ -649,11 +649,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div className="w-full space-y-2">
                         <Label htmlFor="overall-feedback">
-                            {isPersonnelOfficeView ? "人事室フィードバック (最終承認)" : "全体的なフィードバック"}
+                            {isPersonnelOfficeView ? "人事室からの特記事項 (最終承認)" : "特記事項"}
                         </Label>
                         <Textarea 
                             id="overall-feedback" 
-                            placeholder="この提出物に関する最終コメントを記入してください..." 
+                            placeholder="この提出物に関する特記事項を記入してください..." 
                             value={overallFeedback}
                             onChange={(e) => setOverallFeedback(e.target.value)}
                         />
@@ -682,5 +682,3 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
-
-    
