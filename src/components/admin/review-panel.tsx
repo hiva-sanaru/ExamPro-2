@@ -69,13 +69,17 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
 
   const isActionDisabled = useMemo(() => {
-    if (currentUser.role === 'system_administrator') return false; // Sys admin can do anything
+    if (currentUser.role === 'system_administrator') return false;
     if (isPersonnelOfficeView) {
+        // PO role should be system_administrator.
         return currentUser.role !== 'system_administrator';
     }
-    // HQ view
-    return currentUser.role !== 'hq_administrator' || submission.examineeHeadquarters !== currentUser.headquarters;
-  }, [currentUser.role, currentUser.headquarters, isPersonnelOfficeView, submission.examineeHeadquarters]);
+    // HQ view, check if user is hq_administrator and belongs to the submission's HQ
+    if(currentUser.role === 'hq_administrator'){
+        return submission.examineeHeadquarters !== currentUser.headquarters;
+    }
+    return true;
+  }, [currentUser, isPersonnelOfficeView, submission.examineeHeadquarters]);
 
 
   const totalScore = useMemo(() => {
@@ -124,6 +128,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
         setFinalOutcome(submission.finalOutcome);
     } else {
+        setReviewerName(gradeData?.reviewerName || currentUser.name || '');
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
     }
@@ -335,10 +340,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     } else { // Personnel Office
         const poQuestionGrades: { [key: string]: QuestionGrade } = {};
         for (const qId in manualScores) {
-            poQuestionGrades[qId] = { score: manualScores[qId] ?? 0 };
+            const grade: QuestionGrade = { score: manualScores[qId] ?? 0 };
             if (aiJustifications[qId]) {
-              poQuestionGrades[qId].justification = aiJustifications[qId];
+                grade.justification = aiJustifications[qId];
             }
+            poQuestionGrades[qId] = grade;
         }
 
         dataToUpdate.poGrade = {
