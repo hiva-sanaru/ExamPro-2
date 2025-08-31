@@ -124,25 +124,36 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
     setManualScores(prev => ({...prev, [questionId]: newScore}));
   }
 
-  const getAnswerForQuestion = (questionId: string, index?: number) => {
-    let answer = submission.answers.find((a) => a.questionId === questionId);
-    // Fallback for legacy exams without question IDs: use deterministic index-based ID
-    if (!answer && typeof index === 'number') {
-      const fallbackId = `q-${index}`;
-      answer = submission.answers.find((a) => a.questionId === fallbackId);
+  const getAnswerForQuestion = (questionId: string, subQuestionId?: string): string => {
+    const mainAnswer = submission.answers.find(a => a.questionId === questionId);
+    if (!mainAnswer) return "－";
+
+    if (subQuestionId) {
+        if (!mainAnswer.subAnswers) return "－";
+        const subAnswer = mainAnswer.subAnswers.find(sa => sa.questionId === subQuestionId);
+        if (!subAnswer) return "－";
+        // Handle correct and incorrect (legacy) data structures
+        if (typeof subAnswer.value === 'string' && subAnswer.value.trim() !== '') {
+            return subAnswer.value;
+        }
+        // @ts-ignore - a temporary fix for legacy data
+        if (subAnswer.subAnswers && subAnswer.subAnswers.value) {
+           // @ts-ignore
+           return subAnswer.subAnswers.value;
+        }
+        return "－";
     }
-    if (!answer) return "－";
 
     const question = exam.questions.find(q => q.id === questionId);
-    if (question?.type === 'descriptive' && Array.isArray(answer.value)) {
-        return answer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
+    if (question?.type === 'descriptive' && Array.isArray(mainAnswer.value)) {
+        return mainAnswer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
     }
     
-    if (Array.isArray(answer.value)) {
-        return answer.value;
+    if (Array.isArray(mainAnswer.value)) {
+        return mainAnswer.value.join(', ');
     }
 
-    return answer.value || "－";
+    return mainAnswer.value?.toString() || "－";
   };
   
   const handleGradeAllQuestions = async () => {
@@ -151,7 +162,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
     toast({ title: "全問題のAI採点を開始しました...", description: "完了まで数秒お待ちください。" });
 
     const gradingPromises = exam.questions.map((question, index) => {
-        const answerValue = getAnswerForQuestion(question.id!, index);
+        const answerValue = getAnswerForQuestion(question.id!);
         const answerTexts = Array.isArray(answerValue) ? answerValue.filter(t => t.trim() !== '') : [answerValue.toString()];
 
         if (answerTexts.length === 0 || answerTexts[0] === "－" || !question.modelAnswer) {
@@ -362,10 +373,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
         )}
 
         {exam.questions.map((question, index) => {
-          const answerValue = getAnswerForQuestion(question.id!, index);
-          const answerDisplay = Array.isArray(answerValue) ? answerValue.map((a, i) => `(${i+1}) ${a}`).join('\n') : answerValue.toString();
-          const modelAnswerDisplay = Array.isArray(question.modelAnswer) ? question.modelAnswer.map((a, i) => `(${i + 1}) ${a}`).join('\n') : question.modelAnswer;
-
+          const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
           const justification = aiJustifications[question.id!];
 
           return (
@@ -380,47 +388,69 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
                     </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><User className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                            <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{answerDisplay}</p>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
-                            <p className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[100px] whitespace-pre-wrap">{modelAnswerDisplay || "－"}</p>
-                        </div>
-                    </div>
-                    
-                    <div className="space-y-2 pt-4 border-t">
-                        <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
-                        {justification ? (
-                            <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
-                                <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
-                                <p><strong>根拠:</strong> {justification}</p>
+                  {!hasSubQuestions ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                              <Label className="flex items-center gap-2"><User className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
+                              <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getAnswerForQuestion(question.id!)}</p>
+                          </div>
+                          <div className="space-y-2">
+                              <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
+                              <p className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[100px] whitespace-pre-wrap">{(Array.isArray(question.modelAnswer) ? question.modelAnswer.join(', ') : question.modelAnswer) || "－"}</p>
+                          </div>
+                      </div>
+                      
+                      <div className="space-y-2 pt-4 border-t">
+                          <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
+                          {justification ? (
+                              <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px]">
+                                  <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
+                                  <p><strong>根拠:</strong> {justification}</p>
+                              </div>
+                          ) : (
+                              <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
+                                  <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                              </div>
+                          )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-4">
+                      {question.subQuestions?.map((subQ, subIndex) => (
+                        <div key={subQ.id} className="pt-4 border-t first:border-t-0 first:pt-0">
+                          <p className="font-medium">({subIndex + 1}) {subQ.text}</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2 text-sm"><User className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
+                                <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{getAnswerForQuestion(question.id!, subQ.id)}</p>
                             </div>
-                        ) : (
-                            <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
-                                <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                            <div className="space-y-2">
+                                <Label className="flex items-center gap-2 text-sm"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
+                                <p className="p-2 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[60px] whitespace-pre-wrap">{subQ.modelAnswer || "－"}</p>
                             </div>
-                        )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  )}
 
-                    <div className="space-y-2 pt-4 border-t">
-                        <Label htmlFor={`score-${question.id}`}>{isPersonnelOfficeView ? "最終スコア" : "あなたの評価"}</Label>
-                        <div className="flex items-center gap-2">
-                            <Input 
-                                id={`score-${question.id}`} 
-                                type="number" 
-                                placeholder="スコア" 
-                                className="w-24" 
-                                max={question.points}
-                                min={0}
-                                value={manualScores[question.id!] ?? ''}
-                                onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
-                            />
-                            <span className="text-muted-foreground">/ {question.points} 点</span>
-                        </div>
-                    </div>
+                  <div className="space-y-2 pt-4 border-t">
+                      <Label htmlFor={`score-${question.id}`}>{isPersonnelOfficeView ? "最終スコア" : "あなたの評価"}</Label>
+                      <div className="flex items-center gap-2">
+                          <Input 
+                              id={`score-${question.id}`} 
+                              type="number" 
+                              placeholder="スコア" 
+                              className="w-24" 
+                              max={question.points}
+                              min={0}
+                              value={manualScores[question.id!] ?? ''}
+                              onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
+                          />
+                          <span className="text-muted-foreground">/ {question.points} 点</span>
+                      </div>
+                  </div>
                 </CardContent>
             </Card>
           );
