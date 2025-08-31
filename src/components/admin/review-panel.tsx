@@ -70,8 +70,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
   const isActionDisabled = useMemo(() => {
     if (currentUser.role === 'system_administrator') return false; // Sys admin can do anything
-    if (isPersonnelOfficeView && currentUser.role !== 'system_administrator') return true; // PO view is for sys_admin only
-    if (!isPersonnelOfficeView && currentUser.role !== 'hq_administrator') return true; // HQ view is for hq_admin only
+    if (isPersonnelOfficeView && currentUser.role !== 'system_administrator') return true;
+    if (!isPersonnelOfficeView && currentUser.role !== 'hq_administrator') return true;
     return false;
   }, [currentUser.role, isPersonnelOfficeView]);
 
@@ -287,8 +287,6 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const handleSubmitReview = async () => {
     setIsSubmitting(true);
     
-    const mockReviewerName = reviewerRole === '本部' ? currentUser.name : 'システム管理者';
-
     let dataToUpdate: Partial<Submission> = {};
     let newStatus: Submission['status'] = submission.status;
 
@@ -305,7 +303,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         dataToUpdate.hqGrade = {
             score: totalScore,
             justification: overallFeedback,
-            reviewer: mockReviewerName,
+            reviewer: currentUser.name,
             reviewerName: reviewerName,
             questionGrades: questionGrades
         };
@@ -336,7 +334,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         dataToUpdate.poGrade = {
             score: totalScore,
             justification: overallFeedback,
-            reviewer: mockReviewerName,
+            reviewer: currentUser.name,
             reviewerName: reviewerName,
             questionGrades: questionGrades
         };
@@ -664,7 +662,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         </Label>
                         <Input 
                             id="reviewer-name" 
-                            placeholder="氏名を入力..." 
+                            placeholder="採点者の氏名を入力してください" 
                             value={reviewerName}
                             onChange={(e) => setReviewerName(e.target.value)}
                         />
