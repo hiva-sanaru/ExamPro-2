@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { Exam, Answer, ExamineeInfo } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,18 @@ export function ReviewView({ exam }: ReviewViewProps) {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [examineeInfo, setExamineeInfo] = useState<ExamineeInfo | null>(null);
+
+  // Normalize questions to ensure stable IDs during review
+  const questions = useMemo(() => {
+    return exam.questions.map((q, qi) => ({
+      ...q,
+      id: q.id ?? `q-${qi}`,
+      subQuestions: q.subQuestions?.map((sq, si) => ({
+        ...sq,
+        id: sq.id ?? `q-${qi}-s-${si}`,
+      })),
+    }));
+  }, [exam]);
 
   useEffect(() => {
     const savedAnswers = localStorage.getItem(`exam-${exam.id}-answers`);
@@ -92,7 +104,7 @@ export function ReviewView({ exam }: ReviewViewProps) {
         localStorage.removeItem(`exam-${exam.id}-answers`);
         localStorage.removeItem(`exam-examinee-info`);
         localStorage.removeItem(`exam-${exam.id}-endTime`);
-        exam.questions.forEach(q => {
+        questions.forEach(q => {
           if (q.id) {
             localStorage.removeItem(`exam-${exam.id}-question-${q.id}-endTime`);
           }
@@ -119,7 +131,7 @@ export function ReviewView({ exam }: ReviewViewProps) {
           <CardDescription>各質問への回答を確認してください。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {exam.questions.map((question, index) => (
+          {questions.map((question, index) => (
             <div key={question.id} className="rounded-lg border bg-card p-4 shadow-sm">
               <p className="font-semibold text-card-foreground">問題 {index + 1}: {question.text}</p>
               {question.subQuestions && question.subQuestions.length > 0 ? (

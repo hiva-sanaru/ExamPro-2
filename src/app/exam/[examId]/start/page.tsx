@@ -83,7 +83,11 @@ export default function StartExamPage() {
       // Clear any previous exam data for this new session
       localStorage.removeItem(`exam-${examId}-answers`);
       localStorage.removeItem(`exam-${examId}-endTime`);
-      exam?.questions.forEach(q => localStorage.removeItem(`exam-${examId}-question-${q.id}-endTime`))
+      // Clear per-question timers with deterministic fallback IDs
+      exam?.questions.forEach((q, i) => {
+        const qid = q.id ?? `q-${i}`;
+        localStorage.removeItem(`exam-${examId}-question-${qid}-endTime`)
+      })
 
       router.push(`/exam/${examId}`);
     } catch (error) {

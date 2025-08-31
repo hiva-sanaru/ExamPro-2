@@ -124,8 +124,13 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
     setManualScores(prev => ({...prev, [questionId]: newScore}));
   }
 
-  const getAnswerForQuestion = (questionId: string) => {
-    const answer = submission.answers.find((a) => a.questionId === questionId);
+  const getAnswerForQuestion = (questionId: string, index?: number) => {
+    let answer = submission.answers.find((a) => a.questionId === questionId);
+    // Fallback for legacy exams without question IDs: use deterministic index-based ID
+    if (!answer && typeof index === 'number') {
+      const fallbackId = `q-${index}`;
+      answer = submission.answers.find((a) => a.questionId === fallbackId);
+    }
     if (!answer) return "－";
 
     const question = exam.questions.find(q => q.id === questionId);
@@ -145,8 +150,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
     setIsBulkGrading(true);
     toast({ title: "全問題のAI採点を開始しました...", description: "完了まで数秒お待ちください。" });
 
-    const gradingPromises = exam.questions.map(question => {
-        const answerValue = getAnswerForQuestion(question.id!);
+    const gradingPromises = exam.questions.map((question, index) => {
+        const answerValue = getAnswerForQuestion(question.id!, index);
         const answerTexts = Array.isArray(answerValue) ? answerValue.filter(t => t.trim() !== '') : [answerValue.toString()];
 
         if (answerTexts.length === 0 || answerTexts[0] === "－" || !question.modelAnswer) {
@@ -357,7 +362,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, onSubmissionUpdate
         )}
 
         {exam.questions.map((question, index) => {
-          const answerValue = getAnswerForQuestion(question.id!);
+          const answerValue = getAnswerForQuestion(question.id!, index);
           const answerDisplay = Array.isArray(answerValue) ? answerValue.map((a, i) => `(${i+1}) ${a}`).join('\n') : answerValue.toString();
           const modelAnswerDisplay = Array.isArray(question.modelAnswer) ? question.modelAnswer.map((a, i) => `(${i + 1}) ${a}`).join('\n') : question.modelAnswer;
 

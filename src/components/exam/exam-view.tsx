@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Exam, Answer } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
@@ -28,6 +28,19 @@ export function ExamView({ exam }: ExamViewProps) {
   const [count, setCount] = useState(0)
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Normalize questions to ensure each has a stable ID
+  const questions = useMemo(() => {
+    if (!exam) return [] as Exam["questions"];
+    return exam.questions.map((q, qi) => ({
+      ...q,
+      id: q.id ?? `q-${qi}`,
+      subQuestions: q.subQuestions?.map((sq, si) => ({
+        ...sq,
+        id: sq.id ?? `q-${qi}-s-${si}`,
+      })),
+    }));
+  }, [exam]);
 
   // Overall exam timer
   const [examTimeLeft, setExamTimeLeft] = useState(exam?.duration ? exam.duration * 60 : 0);
@@ -185,9 +198,9 @@ export function ExamView({ exam }: ExamViewProps) {
   useEffect(() => {
     if (isLoading || current <= 0 || !exam) return;
     const qIndex = current - 1;
-    if (qIndex >= exam.questions.length) return;
+    if (qIndex >= questions.length) return;
     
-    const question = exam.questions[qIndex];
+    const question = questions[qIndex];
     if (!question || !question.timeLimit) {
       setQuestionEndTime(null);
       setQuestionTimeLeft(null);
@@ -219,7 +232,7 @@ export function ExamView({ exam }: ExamViewProps) {
       localStorage.setItem(key, newEndTime.toString());
       setQuestionEndTime(newEndTime);
     }
-  }, [current, isLoading, exam]);
+  }, [current, isLoading, exam, questions]);
 
   useEffect(() => {
     if (isLoading || questionEndTime == null) return;
@@ -273,7 +286,7 @@ export function ExamView({ exam }: ExamViewProps) {
                 watchKeys: false,
             }}>
                 <CarouselContent>
-                    {exam.questions.map((question, index) => (
+                    {questions.map((question, index) => (
                         <CarouselItem key={question.id}>
                             <QuestionCard 
                                 question={question}
