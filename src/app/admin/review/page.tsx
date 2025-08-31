@@ -30,6 +30,26 @@ export default function ReviewListPage() {
     }
     fetchData();
   }, []);
+  
+  const getStatusInJapanese = (status: Submission['status']): string => {
+    switch (status) {
+      case 'Submitted':
+        return '本部採点中';
+      case '人事確認中':
+        return '人事確認中';
+      case '授業審査待ち':
+        return '授業審査待ち';
+      case '合格':
+        return '合格';
+      case '不合格':
+        return '不合格';
+      case 'Completed':
+         return '完了';
+      default:
+        return status;
+    }
+  };
+
 
   const handleExportSubmissions = () => {
         const headers = [
@@ -53,6 +73,7 @@ export default function ReviewListPage() {
             const exam = exams.find(e => e.id === submission.examId);
             const formatDate = (date: any) => {
                 if (!date) return "－";
+                // Firestore Timestamp has a toDate() method
                 const dateObj = date.toDate ? date.toDate() : new Date(date);
                 return formatInTimeZone(dateObj, 'Asia/Tokyo', "yyyy-MM-dd HH:mm", { locale: ja });
             }
@@ -63,7 +84,7 @@ export default function ReviewListPage() {
                 submission.examineeId || "－",
                 submission.examineeHeadquarters || "－",
                 formatDate(submission.submittedAt),
-                submission.status,
+                getStatusInJapanese(submission.status),
                 submission.hqGrade?.score ?? "－",
                 submission.poGrade?.score ?? "－",
                 submission.finalScore ?? "－",
