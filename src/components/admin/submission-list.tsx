@@ -95,8 +95,8 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                 let bValue: any;
 
                 if (sortConfig.key === 'examTitle') {
-                    aValue = examsMap[a.examId]?.title || (a.examId === 'lesson-review-only' ? '授業動画提出' : '');
-                    bValue = examsMap[b.examId]?.title || (b.examId === 'lesson-review-only' ? '授業動画提出' : '');
+                    aValue = a.examId === 'lesson-review-only' || a.status === '授業審査待ち' ? '授業動画提出' : examsMap[a.examId]?.title || '';
+                    bValue = b.examId === 'lesson-review-only' || b.status === '授業審査待ち' ? '授業動画提出' : examsMap[b.examId]?.title || '';
                 } else if (sortConfig.key === 'statusName') {
                     aValue = getStatusName(a);
                     bValue = getStatusName(b);
@@ -271,7 +271,9 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                 sortedSubmissions.map((submission) => {
                     const exam = examsMap[submission.examId];
                     const statusName = getStatusName(submission);
-                    const examTitle = exam?.title || (submission.examId === 'lesson-review-only' ? '授業動画提出' : '－');
+                    const isLessonReview = submission.status === '授業審査待ち' || submission.examId === 'lesson-review-only';
+                    const examTitle = isLessonReview ? '授業動画提出' : exam?.title || '－';
+                    
                     return (
                         <TableRow key={submission.id}>
                             <TableCell className="font-medium whitespace-nowrap">{examTitle}</TableCell>
