@@ -29,9 +29,10 @@ import { findUserByEmployeeId } from '@/services/userService';
 interface SubmissionListProps {
     submissions: Submission[];
     exams: Exam[];
+    onSubmissionDeleted: (submissionId: string) => void;
 }
 
-export function SubmissionList({ submissions, exams }: SubmissionListProps) {
+export function SubmissionList({ submissions, exams, onSubmissionDeleted }: SubmissionListProps) {
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
 
@@ -62,7 +63,7 @@ export function SubmissionList({ submissions, exams }: SubmissionListProps) {
         if (submissions.length > 0 && exams.length > 0) {
             setIsLoading(false);
         }
-        if (submissions.length === 0) {
+        if (submissions.length === 0 && exams.length >= 0) { // exams might be empty, still not loading
             setIsLoading(false);
         }
     }, [submissions, exams]);
@@ -110,7 +111,7 @@ export function SubmissionList({ submissions, exams }: SubmissionListProps) {
             toast({
                 title: "提出物が削除されました",
             });
-            setLocalSubmissions(prev => prev.filter(s => s.id !== submissionId));
+            onSubmissionDeleted(submissionId);
         } catch (error) {
             console.error(`Failed to delete submission ${submissionId}`, error);
             toast({
@@ -132,6 +133,7 @@ export function SubmissionList({ submissions, exams }: SubmissionListProps) {
               本部採点中: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700/40",
               人事確認中: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-700/40",
               授業審査待ち: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700/40",
+              完了: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-700/40",
               "不明": "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-700/40",
             },
           },
@@ -139,13 +141,15 @@ export function SubmissionList({ submissions, exams }: SubmissionListProps) {
     )
 
     const getStatusName = (submission: Submission): keyof typeof badgeVariants.propTypes.status => {
-        const exam = examsMap[submission.examId];
-        if (submission.status === '授業審査待ち' && exam?.type === 'WrittenAndInterview') return '授業審査待ち';
-        if (submission.status === '合格') return '合格';
-        if (submission.status === '不合格') return '不合格';
-        if (submission.status === '人事確認中') return '人事確認中';
-        if (submission.status === 'Submitted') return '本部採点中';
-        return '不明';
+        switch (submission.status) {
+            case 'Submitted': return '本部採点中';
+            case '人事確認中': return '人事確認中';
+            case '授業審査待ち': return '授業審査待ち';
+            case '合格': return '合格';
+            case '不合格': return '不合格';
+            case 'Completed': return '完了';
+            default: return '不明';
+        }
     }
 
   return (

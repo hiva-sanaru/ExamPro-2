@@ -116,6 +116,11 @@ export default function ReviewListPage() {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     }
+
+    const handleSubmissionDeleted = (submissionId: string) => {
+        setSubmissions(prev => prev.filter(s => s.id !== submissionId));
+    };
+
   return (
     <div className="space-y-6">
       <div>
@@ -135,7 +140,11 @@ export default function ReviewListPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <SubmissionList submissions={submissions} exams={exams} />
+          <SubmissionList 
+            submissions={submissions} 
+            exams={exams} 
+            onSubmissionDeleted={handleSubmissionDeleted}
+          />
         </CardContent>
       </Card>
     </div>
