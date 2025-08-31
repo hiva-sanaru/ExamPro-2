@@ -89,7 +89,7 @@ function ExamineePortal() {
                                     const needsUrlSubmission = submissionForExam?.status === '授業審査待ち' && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'UrlSubmission';
 
                                     return (
-                                        <div key={exam.id} className="flex flex-col justify-between rounded-lg border p-4">
+                                        <div key={exam.id} className="flex flex-col gap-4 rounded-lg border p-4">
                                             <div className="space-y-2">
                                                 <div className="flex items-start justify-between gap-2">
                                                     <h3 className="font-semibold leading-tight">{exam.title}</h3>
@@ -108,7 +108,7 @@ function ExamineePortal() {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="mt-4">
+                                            <div className="mt-auto">
                                                 {needsUrlSubmission ? (
                                                      <Button asChild aria-label={`${exam.title} のURLを提出する`} className="bg-green-600 hover:bg-green-700">
                                                         <Link href={`/exam/${exam.id}/submit-lesson?submissionId=${submissionForExam.id}`}>
