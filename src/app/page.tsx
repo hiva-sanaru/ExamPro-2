@@ -123,7 +123,7 @@ function ExamineePortal() {
                         <CardTitle>授業動画の提出</CardTitle>
                         <CardDescription>筆記試験とは別に、授業審査用の動画URLをいつでも提出できます。</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex justify-end">
                         <Button asChild className="bg-green-600 hover:bg-green-700">
                             <Link href="/submit-lesson">
                                 <Upload className="mr-2 h-4 w-4" />
