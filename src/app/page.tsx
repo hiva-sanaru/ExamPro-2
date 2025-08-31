@@ -62,14 +62,11 @@ function ExamineePortal() {
                 </header>
 
                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between gap-4">
+                    <CardHeader>
                         <div>
                             <CardTitle>受験可能な試験</CardTitle>
                             <CardDescription>{exams.length} 件の試験が利用可能です。</CardDescription>
                         </div>
-                        {!isLoading && exams.length > 0 && (
-                            <Badge variant="secondary" className="shrink-0">新着 {exams.length}</Badge>
-                        )}
                     </CardHeader>
                     <CardContent>
                         {isLoading ? (
