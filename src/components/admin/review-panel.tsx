@@ -262,8 +262,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
               const questionGrades: { [key: string]: QuestionGrade } = {};
               for (const qId in newManualScores) {
                   const grade: QuestionGrade = { score: newManualScores[qId] ?? 0 };
-                  if (aiJustifications[qId]) {
-                      grade.justification = aiJustifications[qId];
+                  if (newAiJustifications[qId]) {
+                      grade.justification = newAiJustifications[qId];
                   }
                   questionGrades[qId] = grade;
               }
@@ -796,3 +796,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
+
+    
