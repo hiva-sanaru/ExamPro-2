@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { gradeAnswer } from "@/ai/flows/grade-answer";
 import { useToast } from "@/hooks/use-toast";
-import type { Exam, Submission, QuestionGrade, User, Answer } from "@/lib/types";
+import type { Exam, Submission, QuestionGrade, User, Answer, Question } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -167,11 +167,18 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     return submission.answers.find(a => a.questionId === questionId);
   };
   
-  const getSubAnswerForQuestion = (mainAnswer: Answer, subQuestionId: string): string => {
-    if (!mainAnswer.subAnswers) return "";
+  const getSubAnswerForQuestion = (mainAnswer: Answer, subQuestionId: string): string[] => {
+    if (!mainAnswer.subAnswers) return [];
     const subAnswer = mainAnswer.subAnswers.find(sa => sa.questionId === subQuestionId);
-    if (!subAnswer || !subAnswer.value || typeof subAnswer.value !== 'string') return "";
-    return subAnswer.value;
+    if (!subAnswer || !subAnswer.value) return [];
+    // Ensure the return value is always an array of strings
+    if (Array.isArray(subAnswer.value)) {
+        return subAnswer.value.filter(v => typeof v === 'string');
+    }
+    if (typeof subAnswer.value === 'string') {
+        return [subAnswer.value];
+    }
+    return [];
   };
   
   const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: (typeof exam.questions)[0]): string => {
@@ -192,53 +199,43 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       setIsBulkGrading(true);
       toast({ title: "全問題のAI採点を開始しました...", description: "完了まで数秒お待ちください。" });
 
-      const gradingPromises = exam.questions.flatMap(question => {
-          if (question.subQuestions && question.subQuestions.length > 0) {
-              const mainAnswer = getAnswerForQuestion(question.id!);
-              if (!mainAnswer) {
-                  return question.subQuestions.map(subQ => 
-                      Promise.resolve({ questionId: subQ.id!, error: "親質問の回答が見つかりません", parentId: question.id! })
-                  );
-              }
-              return question.subQuestions.map(subQ => {
-                  const answerText = getSubAnswerForQuestion(mainAnswer, subQ.id!);
-                  if (!answerText || !subQ.modelAnswer) {
-                      return Promise.resolve({ questionId: subQ.id!, error: "回答または模範解答がありません", parentId: question.id! });
-                  }
-                  const modelAnswers = Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer];
-                  return gradeAnswer({
-                      questionText: subQ.text,
-                      modelAnswers: modelAnswers.filter(t => t && t.trim() !== ''),
-                      gradingCriteria: subQ.gradingCriteria,
-                      answerTexts: [answerText],
-                      points: subQ.points,
-                  }).then(result => ({ questionId: subQ.id!, ...result, parentId: question.id! }))
-                    .catch(error => ({ questionId: subQ.id!, error: error.message, parentId: question.id! }));
-              });
-          } else {
-              const mainAnswer = getAnswerForQuestion(question.id!);
-              let answerTexts: string[] = [];
-              if (mainAnswer?.value) {
-                if (Array.isArray(mainAnswer.value)) {
-                    answerTexts = mainAnswer.value.filter(t => t && t.trim() !== '');
-                } else if (typeof mainAnswer.value === 'string' && mainAnswer.value.trim() !== '') {
-                    answerTexts = [mainAnswer.value];
-                }
-              }
+      const gradingPromises = exam.questions.map(question => {
+        const mainAnswer = getAnswerForQuestion(question.id!);
+        let mainAnswerTexts: string[] = [];
+        if (mainAnswer?.value) {
+            if (Array.isArray(mainAnswer.value)) {
+                mainAnswerTexts = mainAnswer.value.filter(v => typeof v === 'string' && v.trim() !== '');
+            } else if (typeof mainAnswer.value === 'string' && mainAnswer.value.trim() !== '') {
+                mainAnswerTexts = [mainAnswer.value];
+            }
+        }
 
-              if (answerTexts.length === 0 || !question.modelAnswer) {
-                  return [Promise.resolve({ questionId: question.id, error: "回答または模範解答がありません" })];
-              }
-              const modelAnswers = Array.isArray(question.modelAnswer) ? question.modelAnswer : [question.modelAnswer];
-              return [gradeAnswer({
-                  questionText: question.text,
-                  modelAnswers: modelAnswers.filter(t => t && t.trim() !== ''),
-                  gradingCriteria: question.gradingCriteria,
-                  answerTexts: answerTexts,
-                  points: question.points,
-              }).then(result => ({ questionId: question.id!, ...result }))
-                .catch(error => ({ questionId: question.id!, error: error.message }))];
-          }
+        let mainModelAnswers: string[] = [];
+        if (question.modelAnswer) {
+            mainModelAnswers = Array.isArray(question.modelAnswer) ? question.modelAnswer : [question.modelAnswer];
+        }
+
+        const subQuestionsForApi = question.subQuestions?.map(subQ => {
+            const subAnswerTexts = mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!) : [];
+            const subModelAnswers = subQ.modelAnswer ? (Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer]) : [];
+            return {
+                text: subQ.text,
+                points: subQ.points,
+                modelAnswers: subModelAnswers.filter(t => t && t.trim() !== ''),
+                gradingCriteria: subQ.gradingCriteria,
+                answerTexts: subAnswerTexts,
+            };
+        });
+        
+        return gradeAnswer({
+            questionText: question.text,
+            modelAnswers: mainModelAnswers.filter(t => t && t.trim() !== ''),
+            gradingCriteria: question.gradingCriteria,
+            answerTexts: mainAnswerTexts,
+            points: question.points,
+            subQuestions: subQuestionsForApi,
+        }).then(result => ({ questionId: question.id!, ...result }))
+          .catch(error => ({ questionId: question.id!, error: error.message }));
       });
 
       const results = await Promise.all(gradingPromises);
@@ -247,35 +244,14 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       const newAiJustifications: AiJustifications = { ...aiJustifications };
       let hasNewGrading = false;
 
-      // Process results
-      exam.questions.forEach(question => {
-          if (question.subQuestions && question.subQuestions.length > 0) {
-              let mainQuestionScore = 0;
-              let mainQuestionJustification = "";
-              let hasSubQuestionGrading = false;
-
-              question.subQuestions.forEach(subQ => {
-                  const result = results.find(r => 'parentId' in r && r.parentId === question.id && r.questionId === subQ.id);
-                  if (result && !('error' in result)) {
-                      hasNewGrading = true;
-                      hasSubQuestionGrading = true;
-                      mainQuestionScore += result.score;
-                      mainQuestionJustification += `小問(${subQ.text.substring(0,10)}...): ${result.justification}\n`;
-                  }
-              });
-
-              if (hasSubQuestionGrading) {
-                newManualScores[question.id!] = mainQuestionScore;
-                newAiJustifications[question.id!] = mainQuestionJustification.trim();
-              }
-          } else {
-               const result = results.find(r => !('parentId' in r) && r.questionId === question.id);
-               if (result && !('error' in result)) {
-                  hasNewGrading = true;
-                  newManualScores[result.questionId] = result.score;
-                  newAiJustifications[result.questionId] = result.justification;
-               }
-          }
+      results.forEach(result => {
+        if (result && !('error' in result)) {
+            hasNewGrading = true;
+            newManualScores[result.questionId] = result.score;
+            newAiJustifications[result.questionId] = result.justification;
+        } else if (result && 'error' in result) {
+            console.error(`Grading failed for ${result.questionId}:`, result.error);
+        }
       });
       
       setManualScores(newManualScores);
@@ -307,7 +283,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
               toast({ title: "下書き保存エラー", description: "AI採点結果の保存中にエラーが発生しました。", variant: "destructive" });
           }
       } else {
-          toast({ title: "AI一括採点が完了しました", description: "採点対象となる新しい回答はありませんでした。" });
+          toast({ title: "AI一括採点が完了しました", description: "採点対象となる回答がありませんでした。回答が入力されているか確認してください。" });
       }
 
       setIsBulkGrading(false);
@@ -615,7 +591,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                               <div className="space-y-2">
                                   <Label className="flex items-center gap-2 text-sm"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                                  <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!) : '－'}</p>
+                                  <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!).join('\n') : '－'}</p>
                               </div>
                               <div className="space-y-2">
                                   <Label className="flex items-center gap-2 text-sm"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
