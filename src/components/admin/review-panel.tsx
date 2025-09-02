@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { gradeAnswer } from "@/ai/flows/grade-answer";
 import { useToast } from "@/hooks/use-toast";
-import type { Exam, Submission, QuestionGrade, User } from "@/lib/types";
+import type { Exam, Submission, QuestionGrade, User, Answer } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -149,7 +149,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
   const handleManualScoreChange = (questionId: string, score: string) => {
     if (!exam) return;
-    const question = exam.questions.find(q => q.id === questionId);
+    const allQuestions = exam.questions.flatMap(q => q.subQuestions && q.subQuestions.length > 0 ? q.subQuestions : q);
+    const question = allQuestions.find(q => q.id === questionId);
     if (!question) return;
 
     if (score === '') {
@@ -162,34 +163,30 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     }
   }
 
-  const getAnswerForQuestion = (questionId: string, subQuestionId?: string): string => {
-    const mainAnswer = submission.answers.find(a => a.questionId === questionId);
-    if (!mainAnswer) return "－";
-
-    if (subQuestionId) {
-        if (!mainAnswer.subAnswers) return "－";
-        const subAnswer = mainAnswer.subAnswers.find(sa => sa.questionId === subQuestionId);
-        if (!subAnswer) return "－";
-        // Handle correct and incorrect (legacy) data structures
-        if (typeof subAnswer.value === 'string' && subAnswer.value.trim() !== '') {
-            return subAnswer.value;
-        }
-        return "－";
-    }
-    
-    if (!exam) return "－";
-    const question = exam.questions.find(q => q.id === questionId);
-    if (question?.type === 'descriptive' && Array.isArray(mainAnswer.value)) {
-        return mainAnswer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
-    }
-    
-    if (Array.isArray(mainAnswer.value)) {
-        return mainAnswer.value.join(', ');
-    }
-
-    return mainAnswer.value?.toString() || "－";
+  const getAnswerForQuestion = (questionId: string): Answer | undefined => {
+    return submission.answers.find(a => a.questionId === questionId);
   };
   
+  const getSubAnswerForQuestion = (mainAnswer: Answer, subQuestionId: string): string => {
+    if (!mainAnswer.subAnswers) return "－";
+    const subAnswer = mainAnswer.subAnswers.find(sa => sa.questionId === subQuestionId);
+    if (!subAnswer || !subAnswer.value || typeof subAnswer.value !== 'string') return "－";
+    return subAnswer.value;
+  };
+  
+  const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: (typeof exam.questions)[0]): string => {
+      if (!mainAnswer) return "－";
+  
+      if (question.type === 'descriptive' && Array.isArray(mainAnswer.value)) {
+          return mainAnswer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
+      }
+      if (Array.isArray(mainAnswer.value)) {
+          return mainAnswer.value.join(', ');
+      }
+      return mainAnswer.value?.toString() || "－";
+  };
+
+
   const handleGradeAllQuestions = async () => {
       if (reviewerRole === "人事室" || !exam) return;
       setIsBulkGrading(true);
@@ -197,16 +194,21 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
       const gradingPromises = exam.questions.flatMap(question => {
           if (question.subQuestions && question.subQuestions.length > 0) {
-              // Grade each sub-question individually
+              const mainAnswer = getAnswerForQuestion(question.id!);
+              if (!mainAnswer) {
+                  return question.subQuestions.map(subQ => 
+                      Promise.resolve({ questionId: subQ.id!, error: "親質問の回答が見つかりません", parentId: question.id! })
+                  );
+              }
               return question.subQuestions.map(subQ => {
-                  const answerText = getAnswerForQuestion(question.id!, subQ.id);
+                  const answerText = getSubAnswerForQuestion(mainAnswer, subQ.id!);
                   if (answerText === "－" || !subQ.modelAnswer) {
-                      return Promise.resolve({ questionId: subQ.id!, error: "回答または模範解答がありません" });
+                      return Promise.resolve({ questionId: subQ.id!, error: "回答または模範解答がありません", parentId: question.id! });
                   }
                   const modelAnswers = Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer];
                   return gradeAnswer({
                       questionText: subQ.text,
-                      modelAnswers: modelAnswers.filter(t => t.trim() !== ''),
+                      modelAnswers: modelAnswers.filter(t => t && t.trim() !== ''),
                       gradingCriteria: subQ.gradingCriteria,
                       answerTexts: [answerText],
                       points: subQ.points,
@@ -214,19 +216,19 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                     .catch(error => ({ questionId: subQ.id!, error: error.message, parentId: question.id! }));
               });
           } else {
-              // Grade main question
-              const answerValue = getAnswerForQuestion(question.id!);
-              const answerTexts = Array.isArray(answerValue) ? answerValue.filter(t => t && t.trim() !== '') : [answerValue.toString()];
+              const mainAnswer = getAnswerForQuestion(question.id!);
+              const answerText = getMainAnswerAsText(mainAnswer, question);
+              const answerTexts = answerText === "－" ? [] : (Array.isArray(mainAnswer?.value) ? mainAnswer.value.filter(t => t && t.trim() !== '') : [answerText]);
 
-              if (answerTexts.length === 0 || answerTexts[0] === "－" || !question.modelAnswer) {
+              if (answerTexts.length === 0 || !question.modelAnswer) {
                   return [Promise.resolve({ questionId: question.id, error: "回答または模範解答がありません" })];
               }
               const modelAnswers = Array.isArray(question.modelAnswer) ? question.modelAnswer : [question.modelAnswer];
               return [gradeAnswer({
                   questionText: question.text,
-                  modelAnswers: modelAnswers.filter(t => t.trim() !== ''),
+                  modelAnswers: modelAnswers.filter(t => t && t.trim() !== ''),
                   gradingCriteria: question.gradingCriteria,
-                  answerTexts: answerTexts,
+                  answerTexts: answerTexts as string[],
                   points: question.points,
               }).then(result => ({ questionId: question.id!, ...result }))
                 .catch(error => ({ questionId: question.id!, error: error.message }))];
@@ -557,6 +559,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         {exam.questions.map((question, index) => {
           const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
           const justification = aiJustifications[question.id!];
+          const mainAnswer = getAnswerForQuestion(question.id!)
 
           return (
             <fieldset key={question.id} disabled={isActionDisabled} className="disabled:opacity-70">
@@ -576,7 +579,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                                <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getAnswerForQuestion(question.id!)}</p>
+                                <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getMainAnswerAsText(mainAnswer, question)}</p>
                             </div>
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
@@ -606,7 +609,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                               <div className="space-y-2">
                                   <Label className="flex items-center gap-2 text-sm"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                                  <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{getAnswerForQuestion(question.id!, subQ.id)}</p>
+                                  <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!) : '－'}</p>
                               </div>
                               <div className="space-y-2">
                                   <Label className="flex items-center gap-2 text-sm"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
@@ -811,3 +814,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
+
+    
