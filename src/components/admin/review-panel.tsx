@@ -199,7 +199,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
           if (question.subQuestions && question.subQuestions.length > 0) {
               // Grade each sub-question individually
               return question.subQuestions.map(subQ => {
-                  const answerText = getAnswerForQuestion(question.id!, subQ.id!);
+                  const answerText = getAnswerForQuestion(question.id!, subQ.id);
                   if (answerText === "－" || !subQ.modelAnswer) {
                       return Promise.resolve({ questionId: subQ.id!, error: "回答または模範解答がありません" });
                   }
