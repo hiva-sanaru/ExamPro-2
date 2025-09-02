@@ -217,8 +217,14 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
               });
           } else {
               const mainAnswer = getAnswerForQuestion(question.id!);
-              const answerText = getMainAnswerAsText(mainAnswer, question);
-              const answerTexts = !answerText ? [] : (Array.isArray(mainAnswer?.value) ? mainAnswer.value.filter(t => t && t.trim() !== '') : [answerText]);
+              let answerTexts: string[] = [];
+              if (mainAnswer?.value) {
+                if (Array.isArray(mainAnswer.value)) {
+                    answerTexts = mainAnswer.value.filter(t => t && t.trim() !== '');
+                } else if (typeof mainAnswer.value === 'string' && mainAnswer.value.trim() !== '') {
+                    answerTexts = [mainAnswer.value];
+                }
+              }
 
               if (answerTexts.length === 0 || !question.modelAnswer) {
                   return [Promise.resolve({ questionId: question.id, error: "回答または模範解答がありません" })];
@@ -228,7 +234,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                   questionText: question.text,
                   modelAnswers: modelAnswers.filter(t => t && t.trim() !== ''),
                   gradingCriteria: question.gradingCriteria,
-                  answerTexts: answerTexts as string[],
+                  answerTexts: answerTexts,
                   points: question.points,
               }).then(result => ({ questionId: question.id!, ...result }))
                 .catch(error => ({ questionId: question.id!, error: error.message }))];
