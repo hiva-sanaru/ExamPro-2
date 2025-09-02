@@ -168,14 +168,14 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   };
   
   const getSubAnswerForQuestion = (mainAnswer: Answer, subQuestionId: string): string => {
-    if (!mainAnswer.subAnswers) return "－";
+    if (!mainAnswer.subAnswers) return "";
     const subAnswer = mainAnswer.subAnswers.find(sa => sa.questionId === subQuestionId);
-    if (!subAnswer || !subAnswer.value || typeof subAnswer.value !== 'string') return "－";
+    if (!subAnswer || !subAnswer.value || typeof subAnswer.value !== 'string') return "";
     return subAnswer.value;
   };
   
   const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: (typeof exam.questions)[0]): string => {
-      if (!mainAnswer) return "－";
+      if (!mainAnswer) return "";
   
       if (question.type === 'descriptive' && Array.isArray(mainAnswer.value)) {
           return mainAnswer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
@@ -183,7 +183,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       if (Array.isArray(mainAnswer.value)) {
           return mainAnswer.value.join(', ');
       }
-      return mainAnswer.value?.toString() || "－";
+      return mainAnswer.value?.toString() || "";
   };
 
 
@@ -202,7 +202,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
               }
               return question.subQuestions.map(subQ => {
                   const answerText = getSubAnswerForQuestion(mainAnswer, subQ.id!);
-                  if (answerText === "－" || !subQ.modelAnswer) {
+                  if (!answerText || !subQ.modelAnswer) {
                       return Promise.resolve({ questionId: subQ.id!, error: "回答または模範解答がありません", parentId: question.id! });
                   }
                   const modelAnswers = Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer];
@@ -218,7 +218,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
           } else {
               const mainAnswer = getAnswerForQuestion(question.id!);
               const answerText = getMainAnswerAsText(mainAnswer, question);
-              const answerTexts = answerText === "－" ? [] : (Array.isArray(mainAnswer?.value) ? mainAnswer.value.filter(t => t && t.trim() !== '') : [answerText]);
+              const answerTexts = !answerText ? [] : (Array.isArray(mainAnswer?.value) ? mainAnswer.value.filter(t => t && t.trim() !== '') : [answerText]);
 
               if (answerTexts.length === 0 || !question.modelAnswer) {
                   return [Promise.resolve({ questionId: question.id, error: "回答または模範解答がありません" })];
@@ -579,7 +579,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                                <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getMainAnswerAsText(mainAnswer, question)}</p>
+                                <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getMainAnswerAsText(mainAnswer, question) || '－'}</p>
                             </div>
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
@@ -814,5 +814,3 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
-
-    
