@@ -149,15 +149,19 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
   const handleManualScoreChange = (questionId: string, score: string) => {
     if (!exam) return;
-    const allQuestions = exam.questions.flatMap(q => q.subQuestions && q.subQuestions.length > 0 ? q.subQuestions : q);
-    const question = allQuestions.find(q => q.id === questionId);
+    const question = exam.questions.find(q => q.id === questionId);
     if (!question) return;
+
+    let maxPoints = question.points;
+    if (question.subQuestions && question.subQuestions.length > 0) {
+        maxPoints = question.subQuestions.reduce((acc, sub) => acc + sub.points, 0);
+    }
 
     if (score === '') {
         setManualScores(prev => ({...prev, [questionId]: undefined}));
     } else {
         const newScore = Number(score);
-        if (!isNaN(newScore) && newScore <= question.points) {
+        if (!isNaN(newScore) && newScore <= maxPoints) {
             setManualScores(prev => ({...prev, [questionId]: newScore}));
         }
     }
@@ -181,14 +185,14 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     return [];
   };
   
-  const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: (typeof exam.questions)[0]): string => {
+  const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: Question): string => {
       if (!mainAnswer) return "";
   
-      if (question.type === 'descriptive' && Array.isArray(mainAnswer.value)) {
-          return mainAnswer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
-      }
       if (Array.isArray(mainAnswer.value)) {
-          return mainAnswer.value.join(', ');
+        if (question.type === 'descriptive') {
+            return mainAnswer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
+        }
+        return mainAnswer.value.join(', ');
       }
       return mainAnswer.value?.toString() || "";
   };
@@ -202,6 +206,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       const gradingPromises = exam.questions.map(question => {
         const mainAnswer = getAnswerForQuestion(question.id!);
         let mainAnswerTexts: string[] = [];
+        
         if (mainAnswer?.value) {
             if (Array.isArray(mainAnswer.value)) {
                 mainAnswerTexts = mainAnswer.value.filter(v => typeof v === 'string' && v.trim() !== '');
@@ -625,12 +630,12 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                                 type="number" 
                                 placeholder="スコア" 
                                 className="w-24" 
-                                max={question.points}
+                                max={hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + sub.points, 0) : question.points}
                                 min={0}
                                 value={manualScores[question.id!] ?? ''}
                                 onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
                             />
-                            <span className="text-muted-foreground">/ {question.points} 点</span>
+                            <span className="text-muted-foreground">/ {hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + sub.points, 0) : question.points} 点</span>
                         </div>
                     </div>
                   </CardContent>
@@ -796,5 +801,3 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
-
-    
