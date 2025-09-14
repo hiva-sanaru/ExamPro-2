@@ -21,6 +21,25 @@ import { ja } from 'date-fns/locale';
 import { useRouter } from "next/navigation";
 
 
+// Remove any undefined fields deeply to satisfy Firestore update constraints
+function removeUndefinedDeep<T>(value: T): T {
+  // Preserve Date objects
+  if (value instanceof Date) return value;
+  if (Array.isArray(value)) {
+    return value.map((v) => removeUndefinedDeep(v)) as unknown as T;
+  }
+  if (value && typeof value === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v !== undefined) {
+        result[k] = removeUndefinedDeep(v as unknown as T);
+      }
+    }
+    return result as unknown as T;
+  }
+  return value;
+}
+
 interface ReviewPanelProps {
   exam: Exam | null;
   submission: Submission;
@@ -432,7 +451,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     dataToUpdate.status = newStatus;
 
     try {
-        await updateSubmission(submission.id, dataToUpdate);
+        const sanitizedUpdate = removeUndefinedDeep(dataToUpdate) as Partial<Omit<Submission, 'id'>>;
+        await updateSubmission(submission.id, sanitizedUpdate);
         toast({ title: `${reviewerRole}のレビューが正常に送信されました！` });
         onSubmissionUpdate();
         router.push('/admin/review');
