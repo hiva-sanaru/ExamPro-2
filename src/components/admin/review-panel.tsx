@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { gradeAnswer } from "@/ai/flows/grade-answer";
 import { useToast } from "@/hooks/use-toast";
-import type { Exam, Submission, QuestionGrade, User, Answer, Question, LessonReviewGrades, LessonReviewGradeValue } from "@/lib/types";
+import type { Exam, Submission, QuestionGrade, User, Answer, Question, LessonReviewGradeValue, LessonReviewGrades } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -95,43 +95,27 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
 
   const isActionDisabled = useMemo(() => {
-    // デバッグ情報を出力
-    console.log('Debug isActionDisabled:', {
-      currentUserRole: currentUser.role,
-      isPersonnelOfficeView,
-      isLessonReview,
-      submissionStatus: submission.status,
-      submissionId: submission.id
-    });
-
-    // System admin can always take action
     if (currentUser.role === 'system_administrator') {
-        console.log('Action enabled: system_administrator');
-        return false;
+      return false;
     }
-    
-    // PO can only be modified by system_admin, so disable for others
     if (isPersonnelOfficeView) {
-        console.log('Action disabled: personnel office view');
-        return true; 
+      return true;
     }
-    
-    // HQ view
-    if(currentUser.role === 'hq_administrator'){
-       if (isLessonReview) { // Video URL has been submitted
-         // 動画審査の場合、「授業審査待ち」または「本部採点中」の場合は編集可能
-         const isDisabled = submission.status !== '授業審査待ち' && submission.status !== '本部採点中';
-         console.log('HQ lesson review - Action disabled:', isDisabled, 'Status:', submission.status);
-         return isDisabled;
-       }
-       // HQ can review written exam if status is 'Submitted'
-       const isDisabled = submission.status !== 'Submitted' && submission.status !== '本部採点中';
-       console.log('HQ written exam - Action disabled:', isDisabled, 'Status:', submission.status);
-       return isDisabled;
+
+    if (currentUser.role === 'hq_administrator') {
+      const userHq = currentUser.headquarters?.replace('採点', '') || '';
+      const submissionHq = submission.examineeHeadquarters || '';
+      if (userHq !== submissionHq) {
+          return true;
+      }
+      
+      if (isLessonReview) {
+        return submission.status !== '授業審査待ち';
+      }
+      
+      return submission.status !== 'Submitted';
     }
-    
-    // Default to disabled for any other case
-    console.log('Action disabled: default case, role:', currentUser.role);
+
     return true;
   }, [currentUser, isPersonnelOfficeView, submission, isLessonReview]);
 
@@ -473,106 +457,105 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Button>
   );
 
-  // THIS IS THE NEW LOGIC: EARLY RETURN FOR VIDEO REVIEW
   if (isLessonReview) {
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">{reviewerRole}レビュー</CardTitle>
-                <CardDescription>提出された動画を確認し、各項目を評価してください。</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <fieldset disabled={isActionDisabled} className="disabled:opacity-70 space-y-6">
-                    <div className="space-y-2">
-                        <Label className="flex items-center gap-2"><Youtube className="w-4 h-4 text-muted-foreground" />提出されたURL</Label>
-                        {submission.lessonReviewUrl ? (
-                            <a href={submission.lessonReviewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline block truncate">
-                                {submission.lessonReviewUrl}
-                            </a>
-                        ) : (
-                            <p className="text-muted-foreground p-3 bg-muted rounded-md text-center">動画URLはまだ提出されていません。</p>
-                        )}
-                    </div>
-                    
-                    {lessonReviewItems.length > 0 && (
-                        <div className="space-y-4 pt-6 border-t">
-                            <h3 className="text-lg font-semibold">動画評価項目</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
-                                {lessonReviewItems.map(item => (
-                                    <div key={item} className="space-y-2">
-                                        <Label htmlFor={`grade-${item}`} className="text-sm font-normal">{item}</Label>
-                                        <div className="flex gap-2">
-                                            <GradeButton value="Passed" onClick={() => handleLessonGradeChange(item, 'Passed')} current={lessonReviewGrades[item]} />
-                                            <GradeButton value="Failed" onClick={() => handleLessonGradeChange(item, 'Failed')} current={lessonReviewGrades[item]} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </fieldset>
-            </CardContent>
-            <CardFooter className="flex flex-col items-stretch gap-4 border-t pt-6">
-              <fieldset disabled={isActionDisabled} className="disabled:opacity-70 space-y-4">
-                  {isPersonnelOfficeView && (
-                    <div className="space-y-4">
-                      <Label>最終的な合否（授業審査）</Label>
-                      <div className="flex gap-4">
-                          <Button 
-                              onClick={() => setFinalOutcome('Passed')}
-                              variant={finalOutcome === 'Passed' ? 'default' : 'outline'}
-                              className={cn("flex-1", finalOutcome === 'Passed' && "bg-green-600 hover:bg-green-700")}
-                          >
-                              <ThumbsUp className="mr-2 h-4 w-4" />
-                              合格
-                          </Button>
-                          <Button 
-                              onClick={() => setFinalOutcome('Failed')}
-                              variant={finalOutcome === 'Failed' ? 'destructive' : 'outline'}
-                              className="flex-1"
-                          >
-                              <ThumbsDown className="mr-2 h-4 w-4" />
-                              不合格
-                          </Button>
+      <Card>
+          <CardHeader>
+              <CardTitle className="font-headline">{reviewerRole}レビュー</CardTitle>
+              <CardDescription>提出された動画を確認し、各項目を評価してください。</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+              <fieldset disabled={isActionDisabled} className="disabled:opacity-70 space-y-6">
+                  <div className="space-y-2">
+                      <Label className="flex items-center gap-2"><Youtube className="w-4 h-4 text-muted-foreground" />提出されたURL</Label>
+                      {submission.lessonReviewUrl ? (
+                          <a href={submission.lessonReviewUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline block truncate">
+                              {submission.lessonReviewUrl}
+                          </a>
+                      ) : (
+                          <p className="text-muted-foreground p-3 bg-muted rounded-md text-center">動画URLはまだ提出されていません。</p>
+                      )}
+                  </div>
+                  
+                  {lessonReviewItems.length > 0 && (
+                      <div className="space-y-4 pt-6 border-t">
+                          <h3 className="text-lg font-semibold">動画評価項目</h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+                              {lessonReviewItems.map(item => (
+                                  <div key={item} className="space-y-2">
+                                      <Label htmlFor={`grade-${item}`} className="text-sm font-normal">{item}</Label>
+                                      <div className="flex gap-2">
+                                          <GradeButton value="Passed" onClick={() => handleLessonGradeChange(item, 'Passed')} current={lessonReviewGrades[item]} />
+                                          <GradeButton value="Failed" onClick={() => handleLessonGradeChange(item, 'Failed')} current={lessonReviewGrades[item]} />
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
                       </div>
-                    </div>
                   )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="w-full space-y-2">
-                          <Label htmlFor="overall-feedback">
-                              {isPersonnelOfficeView ? "人事室からの特記事項 (最終承認)" : "特記事項"}
-                          </Label>
-                          <Textarea 
-                              id="overall-feedback" 
-                              placeholder="この提出物に関する特記事項を記入してください..." 
-                              value={overallFeedback}
-                              onChange={(e) => setOverallFeedback(e.target.value)}
-                          />
-                      </div>
-                      <div className="w-full space-y-2">
-                          <Label htmlFor="reviewer-name">
-                            {isPersonnelOfficeView ? "承認者名" : "採点者名"}
-                          </Label>
-                          <Input 
-                              id="reviewer-name" 
-                              placeholder="採点者の氏名を入力してください"
-                              value={reviewerName}
-                              onChange={(e) => setReviewerName(e.target.value)}
-                          />
-                      </div>
-                  </div>
-
-                  <div className="flex justify-end w-full">
-                      <Button onClick={handleSubmitReview} disabled={isSubmitting || isActionDisabled} size="lg">
-                          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check />}
-                          {isSubmitting ? "送信中..." : isPersonnelOfficeView ? "最終承認して完了" : "レビューを送信"}
-                      </Button>
-                  </div>
               </fieldset>
-            </CardFooter>
-        </Card>
-    );
+          </CardContent>
+          <CardFooter className="flex flex-col items-stretch gap-4 border-t pt-6">
+            <fieldset disabled={isActionDisabled} className="disabled:opacity-70 space-y-4">
+                {isPersonnelOfficeView && (
+                  <div className="space-y-4">
+                    <Label>最終的な合否（授業審査）</Label>
+                    <div className="flex gap-4">
+                        <Button 
+                            onClick={() => setFinalOutcome('Passed')}
+                            variant={finalOutcome === 'Passed' ? 'default' : 'outline'}
+                            className={cn("flex-1", finalOutcome === 'Passed' && "bg-green-600 hover:bg-green-700")}
+                        >
+                            <ThumbsUp className="mr-2 h-4 w-4" />
+                            合格
+                        </Button>
+                        <Button 
+                            onClick={() => setFinalOutcome('Failed')}
+                            variant={finalOutcome === 'Failed' ? 'destructive' : 'outline'}
+                            className="flex-1"
+                        >
+                            <ThumbsDown className="mr-2 h-4 w-4" />
+                            不合格
+                        </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="w-full space-y-2">
+                        <Label htmlFor="overall-feedback">
+                            {isPersonnelOfficeView ? "人事室からの特記事項 (最終承認)" : "特記事項"}
+                        </Label>
+                        <Textarea 
+                            id="overall-feedback" 
+                            placeholder="この提出物に関する特記事項を記入してください..." 
+                            value={overallFeedback}
+                            onChange={(e) => setOverallFeedback(e.target.value)}
+                        />
+                    </div>
+                    <div className="w-full space-y-2">
+                        <Label htmlFor="reviewer-name">
+                          {isPersonnelOfficeView ? "承認者名" : "採点者名"}
+                        </Label>
+                        <Input 
+                            id="reviewer-name" 
+                            placeholder="採点者の氏名を入力してください"
+                            value={reviewerName}
+                            onChange={(e) => setReviewerName(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end w-full">
+                    <Button onClick={handleSubmitReview} disabled={isSubmitting || isActionDisabled} size="lg">
+                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check />}
+                        {isSubmitting ? "送信中..." : isPersonnelOfficeView ? "最終承認して完了" : "レビューを送信"}
+                    </Button>
+                </div>
+            </fieldset>
+          </CardFooter>
+      </Card>
+  );
   }
   
   if (!exam) {
