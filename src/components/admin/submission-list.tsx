@@ -76,6 +76,9 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
     }, [exams]);
     
     const getStatusName = (submission: Submission): keyof typeof badgeVariants.propTypes.status => {
+        if (!submission.status) {
+            return '本部採点中';
+        }
         switch (submission.status) {
             case 'Submitted': return '本部採点中';
             case '人事確認中': return '人事確認中';
