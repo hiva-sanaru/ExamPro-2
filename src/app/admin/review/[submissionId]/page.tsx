@@ -75,7 +75,7 @@ export default function AdminReviewPage() {
                 // If it's a lesson-review-only submission, we don't need to fetch an exam
                 let ex: Exam | null = null;
                 // A submission for lesson review might still have an examId
-                if (sub.examId && sub.status !== '授業審査待ち' && sub.examId !== 'lesson-review-only') {
+                if (sub.examId && sub.examId !== 'lesson-review-only') {
                     ex = await getExam(sub.examId);
                     if (!ex) {
                         setError("Exam not found for this submission.");
@@ -139,7 +139,7 @@ export default function AdminReviewPage() {
         notFound();
     }
     
-    const isLessonReview = submission.status === '授業審査待ち' || submission.examId === 'lesson-review-only';
+    const isLessonReview = !!submission.lessonReviewUrl || submission.status === '授業審査待ち' || submission.examId === 'lesson-review-only';
 
     const hasAccess = currentUser.role === 'system_administrator' || 
                       (currentUser.role === 'hq_administrator' && currentUser.headquarters === submission.examineeHeadquarters);
