@@ -119,10 +119,16 @@ export default function AdminReviewPage() {
         notFound();
     }
     
-    const isLessonReview = !!submission.lessonReviewUrl;
+    // 動画審査とみなす条件を広げる: 授業審査待ち / lesson-review-only / URL提出済み
+    const isLessonReview =
+        submission.status === '授業審査待ち' ||
+        !!submission.lessonReviewUrl ||
+        submission.examId === 'lesson-review-only';
 
+    // 本部名の表記ゆれ対応（例: 「浜松本部」「浜松」「浜松採点」など）
+    const normalizeHq = (s?: string) => (s || '').replace('採点', '').trim();
     const hasAccess = currentUser.role === 'system_administrator' || 
-                      (currentUser.role === 'hq_administrator' && currentUser.headquarters === submission.examineeHeadquarters);
+                      (currentUser.role === 'hq_administrator' && normalizeHq(currentUser.headquarters) === normalizeHq(submission.examineeHeadquarters));
 
     if (!hasAccess) {
         return (
