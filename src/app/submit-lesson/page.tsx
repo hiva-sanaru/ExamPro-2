@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,10 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Youtube, Send, User, Hash, Building, FileText } from 'lucide-react';
 import { addSubmission } from '@/services/submissionService';
 import { getHeadquarters } from '@/services/headquartersService';
-import { getExams } from '@/services/examService';
+import { getExam, getExams } from '@/services/examService';
 import type { Headquarters, Exam } from '@/lib/types';
 import Image from 'next/image';
-
 
 const lessonSubmissionSchema = z.object({
   examId: z.string({ required_error: "試験を選択してください。"}).min(1, { message: "試験を選択してください。" }),
@@ -30,12 +29,15 @@ const lessonSubmissionSchema = z.object({
 
 type LessonSubmissionFormValues = z.infer<typeof lessonSubmissionSchema>;
 
-export default function SubmitLessonPage() {
+function SubmitLessonPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   
   const [headquarters, setHeadquarters] = useState<Headquarters[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<LessonSubmissionFormValues>({
@@ -50,6 +52,12 @@ export default function SubmitLessonPage() {
   });
 
    useEffect(() => {
+    const examIdFromUrl = searchParams.get('examId');
+    if (examIdFromUrl) {
+      setSelectedExamId(examIdFromUrl);
+      form.setValue('examId', examIdFromUrl);
+    }
+
     const fetchData = async () => {
       try {
         const [hqData, examData] = await Promise.all([
@@ -70,10 +78,10 @@ export default function SubmitLessonPage() {
       }
     };
     fetchData();
-  }, [toast]);
+  }, [searchParams, toast, form]);
 
   const onSubmit = async (data: LessonSubmissionFormValues) => {
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       await addSubmission({
         examId: data.examId,
@@ -81,7 +89,8 @@ export default function SubmitLessonPage() {
         examineeName: data.name,
         examineeHeadquarters: data.headquarters,
         lessonReviewUrl: data.lessonReviewUrl,
-        answers: [], // No answers for this type of submission
+        answers: [], // This is a lesson review submission, so no answers are needed.
+        status: '授業審査待ち' // Set status directly to '授業審査待ち'
       });
 
       toast({
@@ -89,7 +98,6 @@ export default function SubmitLessonPage() {
         description: "授業審査の動画URLを正常に提出しました。",
       });
       router.push('/');
-      router.refresh();
     } catch (error) {
       console.error("Failed to submit URL", error);
       toast({
@@ -98,11 +106,11 @@ export default function SubmitLessonPage() {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
   
-  if (isLoading && (headquarters.length === 0 || exams.length === 0)) {
+  if (isLoading) {
     return (
         <div className="flex justify-center items-center h-screen text-muted-foreground">
             <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -130,7 +138,7 @@ export default function SubmitLessonPage() {
                     <FormLabel>試験名</FormLabel>
                     <div className="relative">
                       <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="pl-10">
                             <SelectValue placeholder="提出先の試験を選択してください" />
@@ -225,9 +233,9 @@ export default function SubmitLessonPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                {isLoading ? "提出中..." : "URLを提出する"}
+              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isLoading}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                {isSubmitting ? "提出中..." : "URLを提出する"}
               </Button>
             </form>
           </Form>
@@ -235,4 +243,12 @@ export default function SubmitLessonPage() {
       </Card>
     </main>
   );
+}
+
+export default function SubmitLessonPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-screen text-muted-foreground"><Loader2 className="mr-2 h-6 w-6 animate-spin" />読み込み中...</div>}>
+            <SubmitLessonPageContent />
+        </Suspense>
+    )
 }

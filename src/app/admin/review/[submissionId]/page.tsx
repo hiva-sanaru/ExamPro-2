@@ -47,64 +47,44 @@ export default function AdminReviewPage() {
     const [error, setError] = useState<string | null>(null);
 
     const fetchSubmissionData = useCallback(async () => {
+        setIsLoading(true);
         try {
             const sub = await getSubmission(submissionId);
-             if (!sub) {
+            if (!sub) {
                 setError("Submission not found.");
+                setIsLoading(false);
                 return;
             }
+
+            let ex: Exam | null = null;
+            if (sub.examId) {
+                ex = await getExam(sub.examId);
+            }
+            
+            const employeeId = localStorage.getItem('loggedInUserEmployeeId');
+            if (employeeId) {
+                const user = await findUserByEmployeeId(employeeId);
+                setCurrentUser(user);
+            } else {
+                router.push('/login');
+                return;
+            }
+
             setSubmission(sub);
+            setExam(ex);
         } catch (e) {
             console.error(e);
             setError("Failed to load submission data.");
+        } finally {
+            setIsLoading(false);
         }
-    }, [submissionId]);
+    }, [submissionId, router]);
 
     useEffect(() => {
-        const fetchAllData = async () => {
-            if (!submissionId) return;
-            setIsLoading(true);
-            try {
-                const sub = await getSubmission(submissionId);
-                if (!sub) {
-                    setError("Submission not found.");
-                    setIsLoading(false);
-                    return;
-                }
-
-                // If it's a lesson-review-only submission, we don't need to fetch an exam
-                let ex: Exam | null = null;
-                // A submission for lesson review might still have an examId
-                if (sub.examId && sub.examId !== 'lesson-review-only') {
-                    ex = await getExam(sub.examId);
-                    if (!ex) {
-                        setError("Exam not found for this submission.");
-                        setIsLoading(false);
-                        return;
-                    }
-                }
-                
-                const employeeId = localStorage.getItem('loggedInUserEmployeeId');
-                if (employeeId) {
-                    const user = await findUserByEmployeeId(employeeId);
-                    setCurrentUser(user);
-                } else {
-                    router.push('/login');
-                    return;
-                }
-
-                setSubmission(sub);
-                setExam(ex);
-            } catch (e) {
-                console.error(e);
-                setError("Failed to load submission data.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchAllData();
-    }, [submissionId, router]);
+        if (submissionId) {
+            fetchSubmissionData();
+        }
+    }, [submissionId, fetchSubmissionData]);
     
     const handleSubmissionUpdate = () => {
         fetchSubmissionData();
@@ -139,7 +119,7 @@ export default function AdminReviewPage() {
         notFound();
     }
     
-    const isLessonReview = !!submission.lessonReviewUrl || submission.status === '授業審査待ち' || submission.examId === 'lesson-review-only';
+    const isLessonReview = !!submission.lessonReviewUrl;
 
     const hasAccess = currentUser.role === 'system_administrator' || 
                       (currentUser.role === 'hq_administrator' && currentUser.headquarters === submission.examineeHeadquarters);
@@ -251,5 +231,3 @@ export default function AdminReviewPage() {
         </div>
     );
 }
-
-    

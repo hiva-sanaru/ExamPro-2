@@ -75,7 +75,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const [lessonReviewGrades, setLessonReviewGrades] = useState<LessonReviewGrades>({});
 
   const lessonReviewItems = useMemo(() => {
-    const title = submission.examId === 'lesson-review-only' ? 'チューター' : exam?.title;
+    const title = exam?.title;
     if (!title) return [];
     for (const key in LESSON_REVIEW_ITEMS) {
       if (title.includes(key)) {
@@ -83,7 +83,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       }
     }
     return [];
-  }, [exam?.title, submission.examId]);
+  }, [exam?.title]);
 
 
   const isActionDisabled = useMemo(() => {
@@ -100,8 +100,10 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     // HQ view, check if user is hq_administrator and belongs to the submission's HQ
     if(currentUser.role === 'hq_administrator'){
        if (isLessonReview) {
-         return submission.status !== '授業審査待ち' && submission.status !== '人事確認中' && submission.status !== 'Submitted';
+         // HQ can review if status is '授業審査待ち'
+         return submission.status !== '授業審査待ち';
        }
+       // HQ can review written exam if status is 'Submitted'
        return submission.status !== 'Submitted' && submission.status !== '本部採点中';
     }
     
@@ -413,7 +415,6 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         toast({ title: `${reviewerRole}のレビューが正常に送信されました！` });
         onSubmissionUpdate();
         router.push('/admin/review');
-        router.refresh();
     } catch(error) {
         console.error("Failed to submit review:", error);
         toast({ title: "送信エラー", description: "レビューの送信中にエラーが発生しました。", variant: "destructive" });
@@ -811,7 +812,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         </CardHeader>
                         <CardContent>
                             {exam.lessonReviewType === 'UrlSubmission' ? (
-                                <p>この試験は「YouTube URL提出」形式です。このまま承認すると、トップページにURL提出用のボタンが表示されます。</p>
+                                <p>この試験は「YouTube URL提出」形式です。このまま承認すると、受験者はトップページから動画URLを提出できるようになります。</p>
                             ) : (
                                submission.lessonReviewDate1 ? (
                                  <div className="space-y-2">
@@ -867,5 +868,3 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
-
-    

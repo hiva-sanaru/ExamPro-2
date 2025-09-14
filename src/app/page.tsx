@@ -102,7 +102,7 @@ function ExamineePortal() {
                                             <div className="mt-auto flex justify-end items-center gap-2">
                                                 {showLessonSubmit && (
                                                      <Button asChild variant="outline" size="sm" className="text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700">
-                                                        <Link href="/submit-lesson">
+                                                        <Link href={`/submit-lesson?examId=${exam.id}`}>
                                                             <Youtube className="mr-2 h-4 w-4" />
                                                             動画提出
                                                         </Link>
