@@ -35,9 +35,10 @@ export async function getSubmission(id: string): Promise<Submission | null> {
     return null;
 }
 
-export async function addSubmission(submissionData: Omit<Submission, 'id' | 'submittedAt'>): Promise<string> {
+export async function addSubmission(submissionData: Omit<Submission, 'id' | 'submittedAt' | 'status'>): Promise<string> {
     const dataWithTimestamp = {
         ...submissionData,
+        status: 'Submitted' as const, // Set initial status
         submittedAt: serverTimestamp(),
     };
     const docRef = await addDoc(submissionsCollection, dataWithTimestamp);

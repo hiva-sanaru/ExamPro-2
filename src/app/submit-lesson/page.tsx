@@ -82,7 +82,6 @@ export default function SubmitLessonPage() {
         examineeHeadquarters: data.headquarters,
         lessonReviewUrl: data.lessonReviewUrl,
         answers: [], // No answers for this type of submission
-        status: '授業審査待ち', // Set status directly to waiting for review
       });
 
       toast({
