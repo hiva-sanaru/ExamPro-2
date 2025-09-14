@@ -237,15 +237,19 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         let mainModelAnswers: (string | string[]) = question.modelAnswer || [];
         if (typeof mainModelAnswers === 'string') {
             mainModelAnswers = [mainModelAnswers];
+        } else if (!Array.isArray(mainModelAnswers)) {
+            mainModelAnswers = [];
         }
+
 
         const subQuestionsForApi = question.subQuestions?.map(subQ => {
             const subAnswerTexts = mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!) : [];
             let subModelAnswers = subQ.modelAnswer ? (Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer]) : [];
             
-            // Ensure model answers are string arrays
              if (typeof subModelAnswers === 'string') {
                 subModelAnswers = [subModelAnswers];
+            } else if (!Array.isArray(subModelAnswers)) {
+                subModelAnswers = [];
             }
 
             return {
@@ -284,39 +288,39 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         }
       });
       
-      setManualScores(newManualScores);
-      setAiJustifications(newAiJustifications);
-
       if (hasNewGrading) {
-          try {
-              const questionGrades: { [key: string]: QuestionGrade } = {};
-              for (const qId in newManualScores) {
-                  if (newManualScores[qId] !== undefined) {
-                      const grade: QuestionGrade = { score: newManualScores[qId]! };
-                      if (newAiJustifications[qId]) {
-                          grade.justification = newAiJustifications[qId];
-                      }
-                      questionGrades[qId] = grade;
-                  }
-              }
-              
-              await updateSubmission(submission.id, { 
-                hqGrade: {
-                  score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
-                  justification: overallFeedback,
-                  reviewer: 'AI Draft',
-                  reviewerName: reviewerName,
-                  questionGrades: questionGrades
+        setManualScores(newManualScores);
+        setAiJustifications(newAiJustifications);
+        
+        try {
+            const questionGrades: { [key: string]: QuestionGrade } = {};
+            for (const qId in newManualScores) {
+                if (newManualScores[qId] !== undefined) {
+                    const grade: QuestionGrade = { score: newManualScores[qId]! };
+                    if (newAiJustifications[qId]) {
+                        grade.justification = newAiJustifications[qId];
+                    }
+                    questionGrades[qId] = grade;
                 }
-              });
+            }
+            
+            await updateSubmission(submission.id, { 
+              hqGrade: {
+                score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
+                justification: overallFeedback,
+                reviewer: 'AI Draft',
+                reviewerName: reviewerName,
+                questionGrades: questionGrades
+              }
+            });
 
-              toast({ title: "AI採点結果を下書き保存しました！", description: "各問題のスコアと評価を確認してください。" });
-              onSubmissionUpdate();
+            toast({ title: "AI採点結果を下書き保存しました！", description: "各問題のスコアと評価を確認してください。" });
+            onSubmissionUpdate();
 
-          } catch (error) {
-              console.error("Failed to save AI grading draft:", error);
-              toast({ title: "下書き保存エラー", description: "AI採点結果の保存中にエラーが発生しました。", variant: "destructive" });
-          }
+        } catch (error) {
+            console.error("Failed to save AI grading draft:", error);
+            toast({ title: "下書き保存エラー", description: "AI採点結果の保存中にエラーが発生しました。", variant: "destructive" });
+        }
       } else {
           toast({ title: "AI一括採点が完了しました", description: "採点対象となる新しい回答はありませんでした。回答が入力されているか確認してください。" });
       }
@@ -874,3 +878,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
+
+    
