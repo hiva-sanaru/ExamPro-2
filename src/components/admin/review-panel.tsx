@@ -76,14 +76,14 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
   const lessonReviewItems = useMemo(() => {
     const title = exam?.title;
-    if (!title || !isLessonReview) return [];
+    if (!title) return [];
     for (const key in LESSON_REVIEW_ITEMS) {
       if (title.includes(key)) {
         return LESSON_REVIEW_ITEMS[key];
       }
     }
     return [];
-  }, [exam?.title, isLessonReview]);
+  }, [exam?.title]);
 
 
   const isActionDisabled = useMemo(() => {
@@ -99,8 +99,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     
     // HQ view
     if(currentUser.role === 'hq_administrator'){
-       if (submission.status === '授業審査待ち') { // Video URL has been submitted
-         return false;
+       if (isLessonReview) { // Video URL has been submitted
+         return submission.status !== '授業審査待ち';
        }
        // HQ can review written exam if status is 'Submitted'
        return submission.status !== 'Submitted' && submission.status !== '本部採点中';
@@ -108,7 +108,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     
     // Default to disabled for any other case
     return true;
-  }, [currentUser, isPersonnelOfficeView, submission]);
+  }, [currentUser, isPersonnelOfficeView, submission, isLessonReview]);
 
 
   const totalScore = useMemo(() => {
@@ -153,7 +153,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     setReviewerName(gradeData?.reviewerName || submission.poGrade?.reviewerName || (isPersonnelOfficeView ? submission.hqGrade?.reviewerName : '') || '');
 
     const initialLessonGrades: LessonReviewGrades = {};
-    if (isLessonReview) {
+    if (lessonReviewItems.length > 0) {
       lessonReviewItems.forEach(item => {
           const gradeValue = reviewerRole === '人事室' 
               ? (submission.poGrade?.lessonReviewGrades?.[item] || submission.hqGrade?.lessonReviewGrades?.[item] || 'NotSelected')
@@ -171,7 +171,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         setClassroomName(submission.lessonReviewClassroomName || '');
     }
 
-  }, [submission, reviewerRole, currentUser, lessonReviewItems, isLessonReview]);
+  }, [submission, reviewerRole, currentUser, lessonReviewItems]);
 
 
   const handleManualScoreChange = (questionId: string, score: string) => {
@@ -351,11 +351,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             justification: overallFeedback,
             reviewer: currentUser.id,
             reviewerName: reviewerName,
-            questionGrades: questionGrades,
+            questionGrades: isLessonReview ? undefined : questionGrades,
             lessonReviewGrades: isLessonReview ? lessonReviewGrades : undefined,
         };
 
-        if (exam && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission') {
+        if (exam && !isLessonReview && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission') {
             if (!date1 || !time1) {
                 toast({ title: "入力エラー", description: "授業審査の第一希望日時を入力してください。", variant: "destructive"});
                 setIsSubmitting(false);
@@ -375,8 +375,9 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             dataToUpdate.lessonReviewSchoolName = schoolName;
             dataToUpdate.lessonReviewClassroomName = classroomName;
         }
+        
+        newStatus = isLessonReview ? "人事確認中" : "人事確認中";
 
-        newStatus = "人事確認中";
     } else { // Personnel Office
         const poQuestionGrades: { [key: string]: QuestionGrade } = {};
         for (const qId in manualScores) {
@@ -392,7 +393,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             justification: overallFeedback,
             reviewer: currentUser.id,
             reviewerName: reviewerName,
-            questionGrades: poQuestionGrades,
+            questionGrades: isLessonReview ? undefined : poQuestionGrades,
             lessonReviewGrades: isLessonReview ? lessonReviewGrades : undefined,
         };
         
@@ -461,7 +462,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   }
 
   const LessonReviewSection = () => (
-    <div className="space-y-6">
+    <CardContent className="space-y-6">
         <div className="space-y-2">
             <Label className="flex items-center gap-2"><Youtube className="w-4 h-4 text-muted-foreground" />提出されたURL</Label>
             {submission.lessonReviewUrl ? (
@@ -513,7 +514,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                 </div>
             </div>
         )}
-    </div>
+    </CardContent>
   );
 
   return (
@@ -537,144 +538,144 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {isPersonnelOfficeView && submission.hqGrade && (
-            <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300"><Building className="w-5 h-5" />本部採点結果</CardTitle>
-                    <CardDescription>
-                        本部担当者 ({submission.hqGrade.reviewerName || '未入力'}) による採点結果です。
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    {!isLessonReview && (
+      
+      {isLessonReview ? <LessonReviewSection /> : (
+        <CardContent className="space-y-6">
+            {isPersonnelOfficeView && submission.hqGrade && (
+                <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2 text-green-800 dark:text-green-300"><Building className="w-5 h-5" />本部採点結果</CardTitle>
+                        <CardDescription>
+                            本部担当者 ({submission.hqGrade.reviewerName || '未入力'}) による採点結果です。
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
                       <div className="flex justify-between items-center text-xl font-bold">
                         <span>筆記スコア:</span>
                         <span>{submission.hqGrade.score} / {exam.totalPoints}</span>
                       </div>
-                    )}
-                     <div className="space-y-1 pt-2">
-                        <Label>特記事項</Label>
-                        <p className="text-sm p-2 bg-background rounded-md">{submission.hqGrade.justification || "特記事項はありません。"}</p>
-                    </div>
-                    {submission.lessonReviewDate1 && (
-                        <div className="space-y-2 pt-4 border-t mt-4">
-                           <Label>提案された授業審査日時・場所</Label>
-                           <div className="text-sm space-y-1">
-                             <p><strong>第一希望:</strong> {format(submission.lessonReviewDate1.toDate(), "PPP HH:mm", { locale: ja })}</p>
-                             {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
-                             {submission.lessonReviewSchoolName && <p><strong>校舎名:</strong> {submission.lessonReviewSchoolName}</p>}
-                             {submission.lessonReviewClassroomName && <p><strong>教室名:</strong> {submission.lessonReviewClassroomName}</p>}
-                           </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        )}
-        
-        {isLessonReview && <LessonReviewSection />}
-
-        {!isLessonReview && exam.questions.map((question, index) => {
-          const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
-          const justification = aiJustifications[question.id!];
-          const mainAnswer = getAnswerForQuestion(question.id!)
-
-          return (
-            <fieldset key={question.id} disabled={isActionDisabled} className="disabled:opacity-70">
-              <Card className="overflow-hidden">
-                  <CardHeader className="bg-primary/5 p-4 border-b">
-                      <div className="flex justify-between w-full items-start">
-                          <CardTitle className="text-base font-normal text-foreground">問題 {index + 1}: {question.text}</CardTitle>
-                          <div className="flex items-center gap-2">
-                              {justification && <Badge variant="secondary">AI採点済み</Badge>}
-                              {isBulkGrading && !justification && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-                          </div>
+                       <div className="space-y-1 pt-2">
+                          <Label>特記事項</Label>
+                          <p className="text-sm p-2 bg-background rounded-md">{submission.hqGrade.justification || "特記事項はありません。"}</p>
                       </div>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    {!hasSubQuestions ? (
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-2"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                                <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getMainAnswerAsText(mainAnswer, question).join("\n") || '－'}</p>
+                        {submission.lessonReviewDate1 && (
+                            <div className="space-y-2 pt-4 border-t mt-4">
+                               <Label>提案された授業審査日時・場所</Label>
+                               <div className="text-sm space-y-1">
+                                 <p><strong>第一希望:</strong> {format(submission.lessonReviewDate1.toDate(), "PPP HH:mm", { locale: ja })}</p>
+                                 {submission.lessonReviewDate2 && <p><strong>第二希望:</strong> {format(submission.lessonReviewDate2.toDate(), "PPP HH:mm", { locale: ja })}</p>}
+                                 {submission.lessonReviewSchoolName && <p><strong>校舎名:</strong> {submission.lessonReviewSchoolName}</p>}
+                                 {submission.lessonReviewClassroomName && <p><strong>教室名:</strong> {submission.lessonReviewClassroomName}</p>}
+                               </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
-                                <p className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[100px] whitespace-pre-wrap">{(Array.isArray(question.modelAnswer) ? question.modelAnswer.join(', ') : question.modelAnswer) || "－"}</p>
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-2 pt-4 border-t">
-                            <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
-                            {justification ? (
-                                <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
-                                    <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
-                                    <p><strong>根拠:</strong> {justification}</p>
-                                </div>
-                            ) : (
-                                <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
-                                    <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
-                                </div>
-                            )}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="space-y-4">
-                        {question.subQuestions?.map((subQ, subIndex) => (
-                          <div key={subQ.id} className="pt-4 border-t first:border-t-0 first:pt-0">
-                            <p className="font-medium">({subIndex + 1}) {subQ.text}</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
-                              <div className="space-y-2">
-                                  <Label className="flex items-center gap-2 text-sm"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                                  <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!).join('\n') : '－'}</p>
-                              </div>
-                              <div className="space-y-2">
-                                  <Label className="flex items-center gap-2 text-sm"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
-                                  <p className="p-2 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[60px] whitespace-pre-wrap">{subQ.modelAnswer || "－"}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        <div className="space-y-2 pt-4 border-t">
-                            <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
-                             {justification ? (
-                                <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
-                                    <p><strong>合計スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
-                                    <p className="font-medium">根拠:</p>
-                                    <p className="whitespace-pre-wrap">{justification}</p>
-                                </div>
-                            ) : (
-                                <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
-                                    <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
-                                </div>
-                            )}
-                        </div>
-                      </div>
-                    )}
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+            
+            {exam.questions.map((question, index) => {
+            const hasSubQuestions = question.subQuestions && question.subQuestions.length > 0;
+            const justification = aiJustifications[question.id!];
+            const mainAnswer = getAnswerForQuestion(question.id!)
 
-                    <div className="space-y-2 pt-4 border-t">
-                        <Label htmlFor={`score-${question.id}`}>{isPersonnelOfficeView ? "最終スコア" : "あなたの評価"}</Label>
-                        <div className="flex items-center gap-2">
-                            <Input 
-                                id={`score-${question.id}`} 
-                                type="number" 
-                                placeholder="スコア" 
-                                className="w-24" 
-                                max={hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + (sub.points || 0), 0) : question.points}
-                                min={0}
-                                value={manualScores[question.id!] ?? ''}
-                                onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
-                            />
-                            <span className="text-muted-foreground">/ {hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + (sub.points || 0), 0) : question.points} 点</span>
+            return (
+                <fieldset key={question.id} disabled={isActionDisabled} className="disabled:opacity-70">
+                <Card className="overflow-hidden">
+                    <CardHeader className="bg-primary/5 p-4 border-b">
+                        <div className="flex justify-between w-full items-start">
+                            <CardTitle className="text-base font-normal text-foreground">問題 {index + 1}: {question.text}</CardTitle>
+                            <div className="flex items-center gap-2">
+                                {justification && <Badge variant="secondary">AI採点済み</Badge>}
+                                {isBulkGrading && !justification && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                            </div>
                         </div>
-                    </div>
-                  </CardContent>
-              </Card>
-            </fieldset>
-          );
-        })}
-      </CardContent>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                        {!hasSubQuestions ? (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
+                                    <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getMainAnswerAsText(mainAnswer, question).join("\n") || '－'}</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
+                                    <p className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[100px] whitespace-pre-wrap">{(Array.isArray(question.modelAnswer) ? question.modelAnswer.join(', ') : question.modelAnswer) || "－"}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2 pt-4 border-t">
+                                <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
+                                {justification ? (
+                                    <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
+                                        <p><strong>スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
+                                        <p><strong>根拠:</strong> {justification}</p>
+                                    </div>
+                                ) : (
+                                    <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
+                                        <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                        ) : (
+                        <div className="space-y-4">
+                            {question.subQuestions?.map((subQ, subIndex) => (
+                            <div key={subQ.id} className="pt-4 border-t first:border-t-0 first:pt-0">
+                                <p className="font-medium">({subIndex + 1}) {subQ.text}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2 text-sm"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
+                                    <p className="p-2 rounded-md bg-muted text-sm min-h-[60px] whitespace-pre-wrap">{mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!).join('\n') : '－'}</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="flex items-center gap-2 text-sm"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
+                                    <p className="p-2 rounded-md bg-green-50 dark:bg-green-900/20 text-sm min-h-[60px] whitespace-pre-wrap">{subQ.modelAnswer || "－"}</p>
+                                </div>
+                                </div>
+                            </div>
+                            ))}
+                            <div className="space-y-2 pt-4 border-t">
+                                <Label className="flex items-center gap-2"><Bot className="w-4 h-4 text-muted-foreground" />AI採点</Label>
+                                {justification ? (
+                                    <div className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 text-sm min-h-[100px] whitespace-pre-wrap">
+                                        <p><strong>合計スコア:</strong> {manualScores[question.id!] ?? 'N/A'}/{question.points}</p>
+                                        <p className="font-medium">根拠:</p>
+                                        <p className="whitespace-pre-wrap">{justification}</p>
+                                    </div>
+                                ) : (
+                                    <div className="p-3 rounded-md bg-muted/50 border border-dashed flex items-center justify-center min-h-[100px]">
+                                        <p className="text-sm text-muted-foreground">{isPersonnelOfficeView ? "AI採点の根拠はありません。下のスコアを直接修正してください。" : "「AIで一括採点」ボタンを押してください"}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        )}
+
+                        <div className="space-y-2 pt-4 border-t">
+                            <Label htmlFor={`score-${question.id}`}>{isPersonnelOfficeView ? "最終スコア" : "あなたの評価"}</Label>
+                            <div className="flex items-center gap-2">
+                                <Input 
+                                    id={`score-${question.id}`} 
+                                    type="number" 
+                                    placeholder="スコア" 
+                                    className="w-24" 
+                                    max={hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + (sub.points || 0), 0) : question.points}
+                                    min={0}
+                                    value={manualScores[question.id!] ?? ''}
+                                    onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
+                                />
+                                <span className="text-muted-foreground">/ {hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + (sub.points || 0), 0) : question.points} 点</span>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                </fieldset>
+            );
+            })}
+        </CardContent>
+      )}
+
       <CardFooter className="flex flex-col items-stretch gap-4">
         <fieldset disabled={isActionDisabled} className="disabled:opacity-70">
             <div className="border-t pt-4">
@@ -711,7 +712,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                   </div>
                 )}
 
-                {showLessonReviewForm && (
+                {showLessonReviewForm && !isLessonReview && (
                      <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800 mt-4">
                         <CardHeader>
                              <CardTitle className="text-blue-800 dark:text-blue-300">高得点 - 授業審査へ</CardTitle>
@@ -770,7 +771,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                     </Card>
                 )}
 
-                {isPersonnelOfficeView && exam && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
+                {isPersonnelOfficeView && !isLessonReview && exam && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
                      <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
                         <CardHeader>
                              <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>
