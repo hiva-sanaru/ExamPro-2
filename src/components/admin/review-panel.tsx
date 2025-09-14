@@ -326,25 +326,30 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         try {
             const questionGrades: { [key: string]: QuestionGrade } = {};
             for (const qId in newManualScores) {
-                if (newManualScores[qId] !== undefined) {
-                    const grade: QuestionGrade = { score: newManualScores[qId]! };
+                const s = newManualScores[qId];
+                if (s !== undefined && Number.isFinite(s)) {
+                    const grade: QuestionGrade = { score: s };
                     if (newAiJustifications[qId]) {
                         grade.justification = newAiJustifications[qId];
                     }
                     questionGrades[qId] = grade;
                 }
             }
-            
-            await updateSubmission(submission.id, { 
-              hqGrade: {
-                score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
-                justification: overallFeedback,
-                reviewer: 'AI Draft',
-                reviewerName: reviewerName,
-                questionGrades: questionGrades,
-                lessonReviewGrades: lessonReviewGrades,
-              }
-            });
+
+            const hqDraft: any = {
+              score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
+              justification: overallFeedback,
+              reviewer: 'AI Draft',
+              reviewerName: reviewerName,
+            };
+            if (Object.keys(questionGrades).length > 0) {
+              hqDraft.questionGrades = questionGrades;
+            }
+            if (lessonReviewGrades && Object.keys(lessonReviewGrades).length > 0) {
+              hqDraft.lessonReviewGrades = lessonReviewGrades;
+            }
+
+            await updateSubmission(submission.id, { hqGrade: removeUndefinedDeep(hqDraft) });
 
             toast({ title: "AI採点結果を下書き保存しました！", description: "各問題のスコアと評価を確認してください。" });
             onSubmissionUpdate();
