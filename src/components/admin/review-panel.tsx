@@ -75,15 +75,15 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const [lessonReviewGrades, setLessonReviewGrades] = useState<LessonReviewGrades>({});
 
   const lessonReviewItems = useMemo(() => {
-    if (!exam?.title) return [];
-    const examTitle = exam.title;
+    const title = submission.examId === 'lesson-review-only' ? 'チューター' : exam?.title;
+    if (!title) return [];
     for (const key in LESSON_REVIEW_ITEMS) {
-      if (examTitle.includes(key)) {
+      if (title.includes(key)) {
         return LESSON_REVIEW_ITEMS[key];
       }
     }
     return [];
-  }, [exam?.title]);
+  }, [exam?.title, submission.examId]);
 
 
   const isActionDisabled = useMemo(() => {
@@ -152,11 +152,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     setOverallFeedback(gradeData?.justification || submission.poGrade?.justification || (isPersonnelOfficeView ? submission.hqGrade?.justification : '') || '');
     setReviewerName(gradeData?.reviewerName || submission.poGrade?.reviewerName || (isPersonnelOfficeView ? submission.hqGrade?.reviewerName : '') || '');
 
-
-    // Initialize lesson review grades for HQ view, especially for existing submissions
     const initialLessonGrades: LessonReviewGrades = {};
-    const reviewGradeSource = isPersonnelOfficeView ? (submission.poGrade || submission.hqGrade) : submission.hqGrade;
-
     lessonReviewItems.forEach(item => {
         initialLessonGrades[item] = submission.lessonReviewGrades?.[item] || 'NotSelected';
     });
@@ -179,11 +175,9 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     if (!question) return;
 
     let maxPoints = question.points;
-     // For parent questions with subquestions, max points are the sum of sub-questions' points
     if (question.subQuestions && question.subQuestions.length > 0) {
         maxPoints = question.subQuestions.reduce((acc, sub) => acc + (sub.points || 0), 0);
     }
-
 
     if (score === '') {
         setManualScores(prev => ({...prev, [questionId]: undefined}));
@@ -203,7 +197,6 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     if (!mainAnswer.subAnswers) return [];
     const subAnswer = mainAnswer.subAnswers.find(sa => sa.questionId === subQuestionId);
     if (!subAnswer || !subAnswer.value) return [];
-    // Ensure the return value is always an array of strings
     if (Array.isArray(subAnswer.value)) {
         return subAnswer.value.filter(v => typeof v === 'string');
     }
@@ -874,5 +867,3 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
-
-    
