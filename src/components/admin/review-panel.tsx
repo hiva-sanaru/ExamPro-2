@@ -350,11 +350,13 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
     const questionGrades: { [key: string]: QuestionGrade } = {};
     for (const qId in manualScores) {
-        const grade: QuestionGrade = { score: manualScores[qId] ?? 0 };
-        if (aiJustifications[qId]) {
-          grade.justification = aiJustifications[qId];
+        if (manualScores[qId] !== undefined) {
+            const grade: QuestionGrade = { score: manualScores[qId]! };
+            if (aiJustifications[qId]) {
+              grade.justification = aiJustifications[qId];
+            }
+            questionGrades[qId] = grade;
         }
-        questionGrades[qId] = grade;
     }
 
     if (reviewerRole === '本部') {
@@ -363,8 +365,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             justification: overallFeedback,
             reviewer: currentUser.id,
             reviewerName: reviewerName,
-            questionGrades: isLessonReview ? undefined : questionGrades,
-            lessonReviewGrades: isLessonReview ? lessonReviewGrades : undefined,
+            ...(isLessonReview ? {} : { questionGrades }),
+            ...(isLessonReview ? { lessonReviewGrades } : {}),
         };
 
         if (exam && !isLessonReview && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission') {
@@ -393,11 +395,13 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     } else { // Personnel Office
         const poQuestionGrades: { [key: string]: QuestionGrade } = {};
         for (const qId in manualScores) {
-            const grade: QuestionGrade = { score: manualScores[qId] ?? 0 };
-            if (aiJustifications[qId]) {
-              grade.justification = aiJustifications[qId];
+            if (manualScores[qId] !== undefined) {
+                const grade: QuestionGrade = { score: manualScores[qId]! };
+                if (aiJustifications[qId]) {
+                  grade.justification = aiJustifications[qId];
+                }
+                poQuestionGrades[qId] = grade;
             }
-            poQuestionGrades[qId] = grade;
         }
 
         dataToUpdate.poGrade = {
@@ -405,8 +409,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             justification: overallFeedback,
             reviewer: currentUser.id,
             reviewerName: reviewerName,
-            questionGrades: isLessonReview ? undefined : poQuestionGrades,
-            lessonReviewGrades: isLessonReview ? lessonReviewGrades : undefined,
+            ...(isLessonReview ? {} : { questionGrades: poQuestionGrades }),
+            ...(isLessonReview ? { lessonReviewGrades } : {}),
         };
         
         if (isLessonReview) {
