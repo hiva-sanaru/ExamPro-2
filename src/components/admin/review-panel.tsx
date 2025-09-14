@@ -162,7 +162,9 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     // If there's existing data, overwrite the initialized values
     if (submission.lessonReviewGrades) {
         for (const item in submission.lessonReviewGrades) {
-            initialLessonGrades[item] = submission.lessonReviewGrades[item];
+            if (lessonReviewItems.includes(item)) {
+                initialLessonGrades[item] = submission.lessonReviewGrades[item];
+            }
         }
     }
     
@@ -222,7 +224,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     if (!mainAnswer || !mainAnswer.value) return [];
     const value = mainAnswer.value;
 
-    if (Array.isArray(value)) {
+    if (Array.isArray(value) && value.length > 0) {
         return value.filter(v => typeof v === 'string' && v.trim() !== '');
     }
     if (typeof value === 'string' && value.trim() !== '') {
@@ -251,7 +253,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
         const subQuestionsForApi = question.subQuestions?.map(subQ => {
             const subAnswerTexts = mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!) : [];
-            let subModelAnswers = subQ.modelAnswer ? (Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer]) : [];
+            let subModelAnswers = subQ.modelAnswer || [];
             
              if (typeof subModelAnswers === 'string') {
                 subModelAnswers = [subModelAnswers];
@@ -262,7 +264,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             return {
                 text: subQ.text,
                 points: subQ.points,
-                modelAnswers: subModelAnswers.filter(t => t && t.trim() !== ''),
+                modelAnswers: Array.isArray(subModelAnswers) ? subModelAnswers.filter(t => t && t.trim() !== '') : [],
                 gradingCriteria: subQ.gradingCriteria,
                 answerTexts: subAnswerTexts,
             };
@@ -447,7 +449,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       variant={current === value ? (value === 'Passed' ? 'default' : 'destructive') : 'outline'}
       className={cn("flex-1 text-xs px-2 h-8",
         current === value && value === 'Passed' && "bg-green-600 hover:bg-green-700",
-        current === value && value === 'Failed' && "bg-red-600 hover:bg-red-700",
+        current === value && value === 'Failed' && "bg-red-600 hover:bg-red-600",
       )}
     >
       {value === 'Passed' ? '合' : '否'}
@@ -478,7 +480,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
           <CardFooter className="flex flex-col items-stretch gap-4">
             <fieldset disabled={isActionDisabled} className="disabled:opacity-70">
               <div className="border-t pt-4">
-                <div className="flex justify-between items-center mb-4">
+                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xl font-headline">評価</h3>
                 </div>
 
@@ -885,6 +887,3 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
-
-
-    
