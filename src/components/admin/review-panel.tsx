@@ -108,7 +108,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     // HQ view
     if(currentUser.role === 'hq_administrator'){
        if (isLessonReview) { // Video URL has been submitted
-         return submission.status !== '授業審査待ち';
+         // 動画審査の場合、「授業審査待ち」または「本部採点中」の場合は編集可能
+         return submission.status !== '授業審査待ち' && submission.status !== '本部採点中';
        }
        // HQ can review written exam if status is 'Submitted'
        return submission.status !== 'Submitted' && submission.status !== '本部採点中';
