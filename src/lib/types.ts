@@ -45,11 +45,17 @@ export interface Grade {
     questionGrades?: { [questionId: string]: QuestionGrade };
 }
 
+export type LessonReviewGradeValue = 'Passed' | 'Failed' | 'NotSelected';
+
+export interface LessonReviewGrades {
+  [itemName: string]: LessonReviewGradeValue;
+}
+
 export interface Submission {
   id: string;
   examId: string;
   examineeId: string; // employeeId for unregistered users
-  examineeName: string;
+  examineeName:string;
   examineeHeadquarters?: string;
   submittedAt: any; // Firestore Timestamp
   answers: Answer[];
@@ -64,6 +70,7 @@ export interface Submission {
   lessonReviewSchoolName?: string;
   lessonReviewClassroomName?: string;
   resultCommunicated?: boolean;
+  lessonReviewGrades?: LessonReviewGrades;
 }
 
 export interface Exam {

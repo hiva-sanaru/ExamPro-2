@@ -4,7 +4,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { gradeAnswer } from "@/ai/flows/grade-answer";
 import { useToast } from "@/hooks/use-toast";
-import type { Exam, Submission, QuestionGrade, User, Answer, Question } from "@/lib/types";
+import type { Exam, Submission, QuestionGrade, User, Answer, Question, LessonReviewGrades, LessonReviewGradeValue } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,11 @@ interface AiJustifications {
     [questionId: string]: string;
 }
 
+const LESSON_REVIEW_ITEMS = {
+  'チューター初級': ['声・表情', 'けじめ', '丁寧', 'やる気アドバイス'],
+  'チューター中級': ['スピーチ', '問題対処', 'リーダー性'],
+};
+
 export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSubmissionUpdate, isLessonReview }: ReviewPanelProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -67,6 +72,14 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const [time2, setTime2] = useState(submission.lessonReviewDate2 ? format(submission.lessonReviewDate2.toDate(), 'HH:mm') : '10:00');
   const [schoolName, setSchoolName] = useState(submission.lessonReviewSchoolName || '');
   const [classroomName, setClassroomName] = useState(submission.lessonReviewClassroomName || '');
+  const [lessonReviewGrades, setLessonReviewGrades] = useState<LessonReviewGrades>({});
+
+  const lessonReviewItems = useMemo(() => {
+    if (!exam?.title) return [];
+    if (exam.title.includes('チューター初級')) return LESSON_REVIEW_ITEMS['チューター初級'];
+    if (exam.title.includes('チューター中級')) return LESSON_REVIEW_ITEMS['チューター中級'];
+    return [];
+  }, [exam?.title]);
 
 
   const isActionDisabled = useMemo(() => {
@@ -132,19 +145,26 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
     setManualScores(initialScores);
     setAiJustifications(initialJustifications);
-    setOverallFeedback(gradeData?.justification || '');
-    setReviewerName(gradeData?.reviewerName || '');
+    setOverallFeedback(gradeData?.justification || submission.poGrade?.justification || '');
+    setReviewerName(gradeData?.reviewerName || submission.poGrade?.reviewerName || '');
 
 
     if (reviewerRole === "人事室") {
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
         setFinalOutcome(submission.finalOutcome);
+        setLessonReviewGrades(submission.lessonReviewGrades || {});
     } else {
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
+        // Initialize lesson review grades for HQ view
+        const initialLessonGrades: LessonReviewGrades = {};
+        lessonReviewItems.forEach(item => {
+          initialLessonGrades[item] = submission.lessonReviewGrades?.[item] || 'NotSelected';
+        });
+        setLessonReviewGrades(initialLessonGrades);
     }
 
-  }, [submission, reviewerRole, currentUser]);
+  }, [submission, reviewerRole, currentUser, lessonReviewItems]);
 
 
   const handleManualScoreChange = (questionId: string, score: string) => {
@@ -153,9 +173,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     if (!question) return;
 
     let maxPoints = question.points;
+     // For parent questions, max points are the sum of sub-questions' points
     if (question.subQuestions && question.subQuestions.length > 0) {
-        maxPoints = question.subQuestions.reduce((acc, sub) => acc + sub.points, 0);
+        maxPoints = question.subQuestions.reduce((acc, sub) => acc + (sub.points || 0), 0);
     }
+
 
     if (score === '') {
         setManualScores(prev => ({...prev, [questionId]: undefined}));
@@ -207,12 +229,9 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         const mainAnswer = getAnswerForQuestion(question.id!);
         let mainAnswerTexts: string[] = [];
         
-        if (mainAnswer?.value) {
-            if (Array.isArray(mainAnswer.value)) {
-                mainAnswerTexts = mainAnswer.value.filter(v => typeof v === 'string' && v.trim() !== '');
-            } else if (typeof mainAnswer.value === 'string' && mainAnswer.value.trim() !== '') {
-                mainAnswerTexts = [mainAnswer.value];
-            }
+         if (mainAnswer?.value) {
+            const values = Array.isArray(mainAnswer.value) ? mainAnswer.value : [mainAnswer.value];
+            mainAnswerTexts = values.filter(v => typeof v === 'string' && v.trim() !== '');
         }
 
         let mainModelAnswers: string[] = [];
@@ -266,11 +285,13 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
           try {
               const questionGrades: { [key: string]: QuestionGrade } = {};
               for (const qId in newManualScores) {
-                  const grade: QuestionGrade = { score: newManualScores[qId] ?? 0 };
-                  if (newAiJustifications[qId]) {
-                      grade.justification = newAiJustifications[qId];
+                  if (newManualScores[qId] !== undefined) {
+                      const grade: QuestionGrade = { score: newManualScores[qId]! };
+                      if (newAiJustifications[qId]) {
+                          grade.justification = newAiJustifications[qId];
+                      }
+                      questionGrades[qId] = grade;
                   }
-                  questionGrades[qId] = grade;
               }
               const newHqGrade = {
                   score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
@@ -362,6 +383,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         dataToUpdate.finalOutcome = finalOutcome;
         
         if (isLessonReview) {
+            dataToUpdate.lessonReviewGrades = lessonReviewGrades;
             newStatus = finalOutcome === 'Passed' ? '合格' : '不合格';
         } else if (exam && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview') {
             newStatus = '授業審査待ち';
@@ -391,6 +413,23 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const showLessonReviewForm = reviewerRole === '本部' && exam && totalScore >= 80 && exam.type === 'WrittenAndInterview' && exam.lessonReviewType === 'DateSubmission';
   const hasAiGradingData = Object.keys(aiJustifications).length > 0;
   
+  const handleLessonGradeChange = (item: string, value: LessonReviewGradeValue) => {
+    setLessonReviewGrades(prev => ({ ...prev, [item]: value }));
+  };
+
+  const GradeButton = ({ value, onClick, current }: { value: LessonReviewGradeValue, onClick: () => void, current: LessonReviewGradeValue }) => (
+    <Button
+      onClick={onClick}
+      variant={current === value ? (value === 'Passed' ? 'default' : 'destructive') : 'outline'}
+      className={cn("flex-1 text-xs px-2 h-8",
+        current === value && value === 'Passed' && "bg-green-600 hover:bg-green-700",
+        current === value && value === 'Failed' && "bg-red-600 hover:bg-red-700",
+      )}
+    >
+      {value === 'Passed' ? '合' : '否'}
+    </Button>
+  );
+  
   if (isLessonReview) {
     return (
        <Card>
@@ -418,6 +457,24 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-xl font-headline">最終評価</h3>
                     </div>
+
+                    {isPersonnelOfficeView && lessonReviewItems.length > 0 && (
+                      <div className="space-y-4 my-4 p-4 border rounded-lg">
+                        <Label>評価項目</Label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
+                          {lessonReviewItems.map(item => (
+                            <div key={item} className="space-y-1">
+                                <Label htmlFor={`grade-${item}`} className="text-sm font-normal">{item}</Label>
+                                <div className="flex gap-1">
+                                    <GradeButton value="Passed" onClick={() => handleLessonGradeChange(item, 'Passed')} current={lessonReviewGrades[item]} />
+                                    <GradeButton value="Failed" onClick={() => handleLessonGradeChange(item, 'Failed')} current={lessonReviewGrades[item]} />
+                                </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                      <div className="space-y-4 my-4">
                         <Label>最終的な合否</Label>
                         <div className="flex gap-4">
@@ -635,7 +692,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                                 value={manualScores[question.id!] ?? ''}
                                 onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
                             />
-                            <span className="text-muted-foreground">/ {hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + sub.points, 0) : question.points} 点</span>
+                            <span className="text-muted-foreground">/ {hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + (sub.points || 0), 0) : question.points} 点</span>
                         </div>
                     </div>
                   </CardContent>
