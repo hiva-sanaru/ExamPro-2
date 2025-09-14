@@ -96,14 +96,14 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     // HQ view, check if user is hq_administrator and belongs to the submission's HQ
     if(currentUser.role === 'hq_administrator'){
        if (isLessonReview) {
-         return submission.status !== '授業審査待ち' && submission.status !== '人事確認中';
+         return submission.status !== '授業審査待ち' && submission.status !== '人事確認中' && submission.status !== 'Submitted';
        }
        return submission.status !== 'Submitted' && submission.status !== '本部採点中';
     }
     
     // Default to disabled for any other case (e.g. examinee trying to view)
     return true;
-  }, [currentUser, isPersonnelOfficeView, submission.status, isLessonReview]);
+  }, [currentUser, isPersonnelOfficeView, submission, isLessonReview]);
 
 
   const totalScore = useMemo(() => {
@@ -159,7 +159,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
         setFinalOutcome(submission.finalOutcome);
         setLessonReviewGrades(submission.lessonReviewGrades || initialLessonGrades);
-    } else {
+    } else { // For HQ view
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
         setLessonReviewGrades(initialLessonGrades);
@@ -208,17 +208,21 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     return [];
   };
   
-  const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: Question): string[] => {
-      if (!mainAnswer || !mainAnswer.value) return [];
-  
-      if (Array.isArray(mainAnswer.value)) {
-          return mainAnswer.value.filter(v => v && typeof v === 'string' && v.trim() !== '');
-      }
-      if (typeof mainAnswer.value === 'string' && mainAnswer.value.trim() !== '') {
-          return [mainAnswer.value];
-      }
-      return [];
-  };
+ const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: Question): string[] => {
+    if (!mainAnswer || !mainAnswer.value) return [];
+
+    const value = mainAnswer.value;
+
+    if (Array.isArray(value)) {
+        // This handles cases for fill-in-the-blank and multi-answer descriptive questions.
+        return value.filter(v => typeof v === 'string' && v.trim() !== '');
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+        // This handles single descriptive questions or selection questions.
+        return [value];
+    }
+    return [];
+};
 
 
   const handleGradeAllQuestions = async () => {
@@ -230,14 +234,20 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         const mainAnswer = getAnswerForQuestion(question.id!);
         let mainAnswerTexts: string[] = getMainAnswerAsText(mainAnswer, question);
 
-        let mainModelAnswers: string[] = [];
-        if (question.modelAnswer) {
-            mainModelAnswers = Array.isArray(question.modelAnswer) ? question.modelAnswer : [question.modelAnswer];
+        let mainModelAnswers: (string | string[]) = question.modelAnswer || [];
+        if (typeof mainModelAnswers === 'string') {
+            mainModelAnswers = [mainModelAnswers];
         }
 
         const subQuestionsForApi = question.subQuestions?.map(subQ => {
             const subAnswerTexts = mainAnswer ? getSubAnswerForQuestion(mainAnswer, subQ.id!) : [];
-            const subModelAnswers = subQ.modelAnswer ? (Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer]) : [];
+            let subModelAnswers = subQ.modelAnswer ? (Array.isArray(subQ.modelAnswer) ? subQ.modelAnswer : [subQ.modelAnswer]) : [];
+            
+            // Ensure model answers are string arrays
+             if (typeof subModelAnswers === 'string') {
+                subModelAnswers = [subModelAnswers];
+            }
+
             return {
                 text: subQ.text,
                 points: subQ.points,
@@ -249,7 +259,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         
         return gradeAnswer({
             questionText: question.text,
-            modelAnswers: mainModelAnswers.filter(t => t && t.trim() !== ''),
+            modelAnswers: mainModelAnswers.filter(t => typeof t === 'string' && t.trim() !== '') as string[],
             gradingCriteria: question.gradingCriteria,
             answerTexts: mainAnswerTexts,
             points: question.points,
@@ -357,6 +367,10 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             dataToUpdate.lessonReviewClassroomName = classroomName;
         }
 
+        if (isLessonReview) {
+            dataToUpdate.lessonReviewGrades = lessonReviewGrades;
+        }
+
         newStatus = "人事確認中";
     } else { // Personnel Office
         const poQuestionGrades: { [key: string]: QuestionGrade } = {};
@@ -454,7 +468,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         <h3 className="text-xl font-headline">最終評価</h3>
                     </div>
 
-                    {isPersonnelOfficeView && lessonReviewItems.length > 0 && (
+                    {lessonReviewItems.length > 0 && (
                       <div className="space-y-4 my-4 p-4 border rounded-lg">
                         <Label>評価項目</Label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
@@ -854,3 +868,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
+
+    
