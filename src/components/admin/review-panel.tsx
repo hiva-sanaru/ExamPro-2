@@ -468,9 +468,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             <div>
                 <CardTitle className="font-headline">{reviewerRole}レビュー</CardTitle>
                 <CardDescription>
-                  {isPersonnelOfficeView 
-                    ? "本部採点の結果を確認し、必要に応じてスコアを修正後、最終評価を承認してください。"
-                    : "受験者の回答を確認し、AI採点機能を使用して、評価を入力してください。"
+                  {isLessonReview
+                    ? "提出された動画を確認し、各項目を評価してください。"
+                    : isPersonnelOfficeView 
+                      ? "本部採点の結果を確認し、必要に応じてスコアを修正後、最終評価を承認してください。"
+                      : "受験者の回答を確認し、AI採点機能を使用して、評価を入力してください。"
                   }
                 </CardDescription>
             </div>
@@ -485,7 +487,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       
       <CardContent className="space-y-6">
         {isLessonReview ? (
-            <>
+             <fieldset disabled={isActionDisabled} className="disabled:opacity-70">
                 <div className="space-y-2">
                     <Label className="flex items-center gap-2"><Youtube className="w-4 h-4 text-muted-foreground" />提出されたURL</Label>
                     {submission.lessonReviewUrl ? (
@@ -513,7 +515,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         </div>
                     </div>
                 )}
-            </>
+            </fieldset>
         ) : (
             <>
                 {isPersonnelOfficeView && submission.hqGrade && (
@@ -651,11 +653,10 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
             </>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col items-stretch gap-4">
-        <fieldset disabled={isActionDisabled} className="disabled:opacity-70">
-            <div className="border-t pt-4">
+      <CardFooter className="flex flex-col items-stretch gap-4 border-t pt-6">
+        <fieldset disabled={isActionDisabled} className="disabled:opacity-70 space-y-4">
               {!isLessonReview && (
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center">
                     <h3 className="text-xl font-headline">最終評価（筆記）</h3>
                     <div className="text-2xl font-bold">
                         合計スコア: {totalScore} / {exam.totalPoints}
@@ -664,7 +665,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
               )}
 
                 {isPersonnelOfficeView && (
-                  <div className="space-y-4 my-4">
+                  <div className="space-y-4">
                     <Label>最終的な合否（{isLessonReview ? "授業審査" : "筆記"}）</Label>
                     <div className="flex gap-4">
                         <Button 
@@ -688,7 +689,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                 )}
 
                 {showLessonReviewForm && !isLessonReview && (
-                     <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800 mt-4">
+                     <Card className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800">
                         <CardHeader>
                              <CardTitle className="text-blue-800 dark:text-blue-300">高得点 - 授業審査へ</CardTitle>
                              <CardDescription>この受験者は80点以上を獲得しました。授業審査の希望日時と場所を入力してください。</CardDescription>
@@ -747,7 +748,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                 )}
 
                 {isPersonnelOfficeView && !isLessonReview && exam && finalOutcome === 'Passed' && exam.type === 'WrittenAndInterview' && (
-                     <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800 mt-4">
+                     <Card className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
                         <CardHeader>
                              <CardTitle className="text-green-800 dark:text-green-300">合格 - 授業審査へ</CardTitle>
                              <CardDescription>この受験者は筆記試験に合格しました。次のステップに進んでください。</CardDescription>
@@ -774,7 +775,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                     </Card>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="w-full space-y-2">
                         <Label htmlFor="overall-feedback">
                             {isPersonnelOfficeView ? "人事室からの特記事項 (最終承認)" : "特記事項"}
@@ -798,7 +799,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         />
                     </div>
                 </div>
-            </div>
+
             <div className="flex justify-end w-full">
                 <Button onClick={handleSubmitReview} disabled={isSubmitting || isActionDisabled} size="lg">
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check />}
