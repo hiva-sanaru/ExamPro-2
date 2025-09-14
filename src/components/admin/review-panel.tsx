@@ -45,7 +45,7 @@ interface AiJustifications {
     [questionId: string]: string;
 }
 
-const LESSON_REVIEW_ITEMS = {
+const LESSON_REVIEW_ITEMS: Record<string, string[]> = {
   'チューター初級': ['声・表情', 'けじめ', '丁寧', 'やる気アドバイス'],
   'チューター中級': ['スピーチ', '問題対処', 'リーダー性'],
 };
@@ -76,8 +76,12 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
   const lessonReviewItems = useMemo(() => {
     if (!exam?.title) return [];
-    if (exam.title.includes('チューター初級')) return LESSON_REVIEW_ITEMS['チューター初級'];
-    if (exam.title.includes('チューター中級')) return LESSON_REVIEW_ITEMS['チューター中級'];
+    const examTitle = exam.title;
+    for (const key in LESSON_REVIEW_ITEMS) {
+      if (examTitle.includes(key)) {
+        return LESSON_REVIEW_ITEMS[key];
+      }
+    }
     return [];
   }, [exam?.title]);
 
@@ -152,8 +156,15 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     // Initialize lesson review grades for HQ view, especially for existing submissions
     const initialLessonGrades: LessonReviewGrades = {};
     lessonReviewItems.forEach(item => {
-        initialLessonGrades[item] = submission.lessonReviewGrades?.[item] || 'NotSelected';
+        initialLessonGrades[item] = 'NotSelected';
     });
+    
+    // If there's existing data, overwrite the initialized values
+    if (submission.lessonReviewGrades) {
+        for (const item in submission.lessonReviewGrades) {
+            initialLessonGrades[item] = submission.lessonReviewGrades[item];
+        }
+    }
     
     if (reviewerRole === "人事室") {
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
@@ -162,7 +173,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
     }
-    setLessonReviewGrades(submission.lessonReviewGrades || initialLessonGrades);
+    setLessonReviewGrades(initialLessonGrades);
 
   }, [submission, reviewerRole, currentUser, lessonReviewItems]);
 
@@ -209,16 +220,12 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   
  const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: Question): string[] => {
     if (!mainAnswer || !mainAnswer.value) return [];
-
     const value = mainAnswer.value;
 
     if (Array.isArray(value)) {
-        // This handles cases for fill-in-the-blank and multi-answer descriptive questions.
-        // It's important to filter out empty strings to avoid sending them to AI.
         return value.filter(v => typeof v === 'string' && v.trim() !== '');
     }
     if (typeof value === 'string' && value.trim() !== '') {
-        // This handles single descriptive questions or selection questions.
         return [value];
     }
     return [];
@@ -263,7 +270,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         
         return gradeAnswer({
             questionText: question.text,
-            modelAnswers: mainModelAnswers.filter(t => typeof t === 'string' && t.trim() !== '') as string[],
+            modelAnswers: Array.isArray(mainModelAnswers) ? mainModelAnswers.filter(t => typeof t === 'string' && t.trim() !== '') as string[] : [],
             gradingCriteria: question.gradingCriteria,
             answerTexts: mainAnswerTexts,
             points: question.points,
@@ -288,10 +295,10 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         }
       });
       
+      setManualScores(newManualScores);
+      setAiJustifications(newAiJustifications);
+
       if (hasNewGrading) {
-        setManualScores(newManualScores);
-        setAiJustifications(newAiJustifications);
-        
         try {
             const questionGrades: { [key: string]: QuestionGrade } = {};
             for (const qId in newManualScores) {
@@ -878,5 +885,6 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
+
 
     
