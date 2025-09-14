@@ -149,18 +149,19 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     setReviewerName(gradeData?.reviewerName || submission.poGrade?.reviewerName || '');
 
 
+    // Initialize lesson review grades for HQ view, especially for existing submissions
+    const initialLessonGrades: LessonReviewGrades = {};
+    lessonReviewItems.forEach(item => {
+        initialLessonGrades[item] = submission.lessonReviewGrades?.[item] || 'NotSelected';
+    });
+    
     if (reviewerRole === "人事室") {
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
         setFinalOutcome(submission.finalOutcome);
-        setLessonReviewGrades(submission.lessonReviewGrades || {});
+        setLessonReviewGrades(submission.lessonReviewGrades || initialLessonGrades);
     } else {
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
-        // Initialize lesson review grades for HQ view
-        const initialLessonGrades: LessonReviewGrades = {};
-        lessonReviewItems.forEach(item => {
-          initialLessonGrades[item] = submission.lessonReviewGrades?.[item] || 'NotSelected';
-        });
         setLessonReviewGrades(initialLessonGrades);
     }
 
@@ -207,16 +208,16 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     return [];
   };
   
-  const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: Question): string => {
-      if (!mainAnswer) return "";
+  const getMainAnswerAsText = (mainAnswer: Answer | undefined, question: Question): string[] => {
+      if (!mainAnswer || !mainAnswer.value) return [];
   
       if (Array.isArray(mainAnswer.value)) {
-        if (question.type === 'descriptive') {
-            return mainAnswer.value.map((v, i) => `(${i + 1}) ${v || '未回答'}`).join('\n');
-        }
-        return mainAnswer.value.join(', ');
+          return mainAnswer.value.filter(v => v && typeof v === 'string' && v.trim() !== '');
       }
-      return mainAnswer.value?.toString() || "";
+      if (typeof mainAnswer.value === 'string' && mainAnswer.value.trim() !== '') {
+          return [mainAnswer.value];
+      }
+      return [];
   };
 
 
@@ -227,12 +228,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
       const gradingPromises = exam.questions.map(question => {
         const mainAnswer = getAnswerForQuestion(question.id!);
-        let mainAnswerTexts: string[] = [];
-        
-         if (mainAnswer?.value) {
-            const values = Array.isArray(mainAnswer.value) ? mainAnswer.value : [mainAnswer.value];
-            mainAnswerTexts = values.filter(v => typeof v === 'string' && v.trim() !== '');
-        }
+        let mainAnswerTexts: string[] = getMainAnswerAsText(mainAnswer, question);
 
         let mainModelAnswers: string[] = [];
         if (question.modelAnswer) {
@@ -623,7 +619,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2"><UserIcon className="w-4 h-4 text-muted-foreground" />受験者の回答</Label>
-                                <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getMainAnswerAsText(mainAnswer, question) || '－'}</p>
+                                <p className="p-3 rounded-md bg-muted text-sm min-h-[100px] whitespace-pre-wrap">{getMainAnswerAsText(mainAnswer, question).join("\n") || '－'}</p>
                             </div>
                             <div className="space-y-2">
                                 <Label className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-muted-foreground" />模範解答</Label>
