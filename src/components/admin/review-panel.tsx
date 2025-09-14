@@ -95,13 +95,24 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
 
   const isActionDisabled = useMemo(() => {
+    // デバッグ情報を出力
+    console.log('Debug isActionDisabled:', {
+      currentUserRole: currentUser.role,
+      isPersonnelOfficeView,
+      isLessonReview,
+      submissionStatus: submission.status,
+      submissionId: submission.id
+    });
+
     // System admin can always take action
     if (currentUser.role === 'system_administrator') {
+        console.log('Action enabled: system_administrator');
         return false;
     }
     
     // PO can only be modified by system_admin, so disable for others
     if (isPersonnelOfficeView) {
+        console.log('Action disabled: personnel office view');
         return true; 
     }
     
@@ -109,13 +120,18 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     if(currentUser.role === 'hq_administrator'){
        if (isLessonReview) { // Video URL has been submitted
          // 動画審査の場合、「授業審査待ち」または「本部採点中」の場合は編集可能
-         return submission.status !== '授業審査待ち' && submission.status !== '本部採点中';
+         const isDisabled = submission.status !== '授業審査待ち' && submission.status !== '本部採点中';
+         console.log('HQ lesson review - Action disabled:', isDisabled, 'Status:', submission.status);
+         return isDisabled;
        }
        // HQ can review written exam if status is 'Submitted'
-       return submission.status !== 'Submitted' && submission.status !== '本部採点中';
+       const isDisabled = submission.status !== 'Submitted' && submission.status !== '本部採点中';
+       console.log('HQ written exam - Action disabled:', isDisabled, 'Status:', submission.status);
+       return isDisabled;
     }
     
     // Default to disabled for any other case
+    console.log('Action disabled: default case, role:', currentUser.role);
     return true;
   }, [currentUser, isPersonnelOfficeView, submission, isLessonReview]);
 
