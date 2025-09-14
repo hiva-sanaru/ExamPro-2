@@ -156,17 +156,9 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     // Initialize lesson review grades for HQ view, especially for existing submissions
     const initialLessonGrades: LessonReviewGrades = {};
     lessonReviewItems.forEach(item => {
-        initialLessonGrades[item] = 'NotSelected';
+        initialLessonGrades[item] = submission.lessonReviewGrades?.[item] || 'NotSelected';
     });
-    
-    // If there's existing data, overwrite the initialized values
-    if (submission.lessonReviewGrades) {
-        for (const item in submission.lessonReviewGrades) {
-            if (lessonReviewItems.includes(item)) {
-                initialLessonGrades[item] = submission.lessonReviewGrades[item];
-            }
-        }
-    }
+    setLessonReviewGrades(initialLessonGrades);
     
     if (reviewerRole === "人事室") {
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
@@ -175,7 +167,6 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
     }
-    setLessonReviewGrades(initialLessonGrades);
 
   }, [submission, reviewerRole, currentUser, lessonReviewItems]);
 
@@ -887,3 +878,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
+
+    
