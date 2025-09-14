@@ -145,8 +145,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
     setManualScores(initialScores);
     setAiJustifications(initialJustifications);
-    setOverallFeedback(gradeData?.justification || submission.poGrade?.justification || '');
-    setReviewerName(gradeData?.reviewerName || submission.poGrade?.reviewerName || '');
+    setOverallFeedback(gradeData?.justification || submission.poGrade?.justification || (isPersonnelOfficeView ? submission.hqGrade?.justification : '') || '');
+    setReviewerName(gradeData?.reviewerName || submission.poGrade?.reviewerName || (isPersonnelOfficeView ? submission.hqGrade?.reviewerName : '') || '');
 
 
     // Initialize lesson review grades for HQ view, especially for existing submissions
@@ -158,12 +158,11 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     if (reviewerRole === "人事室") {
         setFinalScore(submission.finalScore ?? submission.hqGrade?.score);
         setFinalOutcome(submission.finalOutcome);
-        setLessonReviewGrades(submission.lessonReviewGrades || initialLessonGrades);
     } else { // For HQ view
         setSchoolName(submission.lessonReviewSchoolName || '');
         setClassroomName(submission.lessonReviewClassroomName || '');
-        setLessonReviewGrades(initialLessonGrades);
     }
+    setLessonReviewGrades(submission.lessonReviewGrades || initialLessonGrades);
 
   }, [submission, reviewerRole, currentUser, lessonReviewItems]);
 
@@ -174,7 +173,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     if (!question) return;
 
     let maxPoints = question.points;
-     // For parent questions, max points are the sum of sub-questions' points
+     // For parent questions with subquestions, max points are the sum of sub-questions' points
     if (question.subQuestions && question.subQuestions.length > 0) {
         maxPoints = question.subQuestions.reduce((acc, sub) => acc + (sub.points || 0), 0);
     }
@@ -215,6 +214,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
     if (Array.isArray(value)) {
         // This handles cases for fill-in-the-blank and multi-answer descriptive questions.
+        // It's important to filter out empty strings to avoid sending them to AI.
         return value.filter(v => typeof v === 'string' && v.trim() !== '');
     }
     if (typeof value === 'string' && value.trim() !== '') {
@@ -299,14 +299,17 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                       questionGrades[qId] = grade;
                   }
               }
-              const newHqGrade = {
+              
+              await updateSubmission(submission.id, { 
+                hqGrade: {
                   score: Object.values(newManualScores).reduce((acc, score) => acc + (score || 0), 0),
                   justification: overallFeedback,
                   reviewer: 'AI Draft',
                   reviewerName: reviewerName,
                   questionGrades: questionGrades
-              };
-              await updateSubmission(submission.id, { hqGrade: newHqGrade });
+                }
+              });
+
               toast({ title: "AI採点結果を下書き保存しました！", description: "各問題のスコアと評価を確認してください。" });
               onSubmissionUpdate();
 
@@ -697,7 +700,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                                 type="number" 
                                 placeholder="スコア" 
                                 className="w-24" 
-                                max={hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + sub.points, 0) : question.points}
+                                max={hasSubQuestions ? question.subQuestions!.reduce((acc, sub) => acc + (sub.points || 0), 0) : question.points}
                                 min={0}
                                 value={manualScores[question.id!] ?? ''}
                                 onChange={(e) => handleManualScoreChange(question.id!, e.target.value)}
