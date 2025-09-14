@@ -18,14 +18,14 @@ import { cva } from "class-variance-authority";
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import Link from "next/link";
-import { FilePen, Loader2, Trash2, Link as LinkIcon, ArrowUpDown } from "lucide-react";
+import { FilePen, Loader2, Trash2, Link as LinkIcon, ArrowUpDown, FileText, Video } from "lucide-react";
 import { updateSubmission, deleteSubmission } from "@/services/submissionService";
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { findUserByEmployeeId } from '@/services/userService';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
-type SortableKeys = keyof Submission | 'examTitle' | 'statusName';
+type SortableKeys = keyof Submission | 'examTitle' | 'statusName' | 'submissionType';
 
 interface SubmissionListProps {
     submissions: Submission[];
@@ -74,6 +74,16 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
             return acc;
         }, {} as Record<string, Exam>);
     }, [exams]);
+
+    const getSubmissionType = (submission: Submission): '筆記' | '動画' => {
+        const exam = examsMap[submission.examId];
+        const examTitle = exam?.title || '';
+        
+        if (submission.lessonReviewUrl || examTitle === '授業動画提出' || submission.status === '授業審査待ち') {
+            return '動画';
+        }
+        return '筆記';
+    };
     
     const getStatusName = (submission: Submission): keyof typeof badgeVariants.propTypes.status => {
         if (!submission.status) {
@@ -103,6 +113,9 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                 } else if (sortConfig.key === 'statusName') {
                     aValue = getStatusName(a);
                     bValue = getStatusName(b);
+                } else if (sortConfig.key === 'submissionType') {
+                    aValue = getSubmissionType(a);
+                    bValue = getSubmissionType(b);
                 } else {
                     aValue = a[sortConfig.key as keyof Submission];
                     bValue = b[sortConfig.key as keyof Submission];
@@ -224,6 +237,11 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                         試験名 {getSortIndicator('examTitle')}
                     </Button>
                 </TableHead>
+                 <TableHead className="text-primary-foreground whitespace-nowrap">
+                    <Button variant="ghost" onClick={() => requestSort('submissionType')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
+                        提出タイプ {getSortIndicator('submissionType')}
+                    </Button>
+                </TableHead>
                 <TableHead className="text-primary-foreground whitespace-nowrap">
                     <Button variant="ghost" onClick={() => requestSort('examineeName')} className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground p-2">
                         受験者名 {getSortIndicator('examineeName')}
@@ -260,13 +278,13 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
             <TableBody>
             {isLoading ? (
                 <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={9} className="h-24 text-center">
                         <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                     </TableCell>
                 </TableRow>
             ) : sortedSubmissions.length === 0 ? (
                 <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
+                    <TableCell colSpan={9} className="h-24 text-center">
                         提出物はまだありません。
                     </TableCell>
                 </TableRow>
@@ -274,12 +292,19 @@ export function SubmissionList({ submissions, exams, onSubmissionDeleted }: Subm
                 sortedSubmissions.map((submission) => {
                     const exam = examsMap[submission.examId];
                     const statusName = getStatusName(submission);
+                    const submissionType = getSubmissionType(submission);
                     const isLessonReview = submission.status === '授業審査待ち' || submission.examId === 'lesson-review-only';
-                    const examTitle = isLessonReview ? '授業動画提出' : exam?.title || '－';
+                    const examTitle = submissionType === '動画' ? '授業動画提出' : exam?.title || '－';
                     
                     return (
                         <TableRow key={submission.id}>
                             <TableCell className="font-medium whitespace-nowrap">{examTitle}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                                <Badge variant={submissionType === '動画' ? 'destructive' : 'secondary'} className="gap-1.5">
+                                    {submissionType === '動画' ? <Video className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                                    {submissionType}
+                                </Badge>
+                            </TableCell>
                             <TableCell className="whitespace-nowrap">{submission.examineeName || '－'}</TableCell>
                             <TableCell className="whitespace-nowrap">{submission.examineeHeadquarters?.replace('本部', '') || '－'}</TableCell>
                             <TableCell className="whitespace-nowrap text-center">{formatInTimeZone(submission.submittedAt, 'Asia/Tokyo', "yy/MM/dd HH:mm", { locale: ja })}</TableCell>
