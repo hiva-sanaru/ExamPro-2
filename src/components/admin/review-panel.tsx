@@ -77,13 +77,21 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   const lessonReviewItems = useMemo(() => {
     const title = exam?.title;
     if (!title) return [];
+    
+    // まず特定のキーワードをチェック
     for (const key in LESSON_REVIEW_ITEMS) {
       if (title.includes(key)) {
         return LESSON_REVIEW_ITEMS[key];
       }
     }
+    
+    // キーワードにマッチしない場合でも、動画審査の場合はデフォルト項目を返す
+    if (isLessonReview && exam?.type === 'WrittenAndInterview') {
+      return ['声・表情', 'けじめ', '丁寧', 'やる気アドバイス']; // デフォルト項目
+    }
+    
     return [];
-  }, [exam?.title]);
+  }, [exam?.title, exam?.type, isLessonReview]);
 
 
   const isActionDisabled = useMemo(() => {
