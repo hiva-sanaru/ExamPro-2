@@ -456,7 +456,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     dataToUpdate.status = newStatus;
 
     try {
-        const sanitizedUpdate = removeUndefinedDeep(dataToUpdate) as Partial<Omit<Submission, 'id'>>;
+        const sanitizedUpdate = removeUndefinedDeep(dataToUpdate);
         await updateSubmission(submission.id, sanitizedUpdate);
         toast({ title: `${reviewerRole}のレビューが正常に送信されました！` });
         onSubmissionUpdate();
@@ -921,4 +921,5 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   );
 }
 
+    
     
