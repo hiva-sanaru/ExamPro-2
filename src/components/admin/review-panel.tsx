@@ -155,6 +155,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
 
     // Initialize lesson review grades for HQ view, especially for existing submissions
     const initialLessonGrades: LessonReviewGrades = {};
+    const reviewGradeSource = isPersonnelOfficeView ? (submission.poGrade || submission.hqGrade) : submission.hqGrade;
+
     lessonReviewItems.forEach(item => {
         initialLessonGrades[item] = submission.lessonReviewGrades?.[item] || 'NotSelected';
     });
@@ -456,7 +458,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                 {isPersonnelOfficeView ? "提出された授業動画のURLを確認し、最終評価を承認してください。" : "授業動画のURLを確認し、評価を入力してください。"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
               <div>
                 <Label>提出されたURL</Label>
                 {submission.lessonReviewUrl ? (
@@ -467,56 +469,51 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                     <p className="text-muted-foreground">URLが提出されていません。</p>
                 )}
               </div>
-          </CardContent>
-          <CardFooter className="flex flex-col items-stretch gap-4">
-            <fieldset disabled={isActionDisabled} className="disabled:opacity-70">
-              <div className="border-t pt-4">
-                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-headline">評価</h3>
-                </div>
-
-                {lessonReviewItems.length > 0 && (
-                  <div className="space-y-4 my-4 p-4 border rounded-lg">
-                    <Label>評価項目</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
-                      {lessonReviewItems.map(item => (
-                        <div key={item} className="space-y-1">
-                          <Label htmlFor={`grade-${item}`} className="text-sm font-normal">{item}</Label>
-                          <div className="flex gap-1">
-                            <GradeButton value="Passed" onClick={() => handleLessonGradeChange(item, 'Passed')} current={lessonReviewGrades[item]} />
-                            <GradeButton value="Failed" onClick={() => handleLessonGradeChange(item, 'Failed')} current={lessonReviewGrades[item]} />
-                          </div>
+               
+              {lessonReviewItems.length > 0 && (
+                <div className="space-y-4 pt-6 border-t">
+                  <h3 className="text-lg font-semibold">評価項目</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-4">
+                    {lessonReviewItems.map(item => (
+                      <div key={item} className="space-y-2">
+                        <Label htmlFor={`grade-${item}`} className="text-sm font-normal">{item}</Label>
+                        <div className="flex gap-2">
+                          <GradeButton value="Passed" onClick={() => handleLessonGradeChange(item, 'Passed')} current={lessonReviewGrades[item]} />
+                          <GradeButton value="Failed" onClick={() => handleLessonGradeChange(item, 'Failed')} current={lessonReviewGrades[item]} />
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
-                )}
-                
-                {isPersonnelOfficeView && (
-                  <div className="space-y-4 my-4">
-                    <Label>最終的な合否</Label>
-                    <div className="flex gap-4">
-                      <Button 
-                        onClick={() => setFinalOutcome('Passed')}
-                        variant={finalOutcome === 'Passed' ? 'default' : 'outline'}
-                        className={cn("flex-1", finalOutcome === 'Passed' && "bg-green-600 hover:bg-green-700")}
-                      >
-                        <ThumbsUp className="mr-2 h-4 w-4" />
-                        合格
-                      </Button>
-                      <Button 
-                        onClick={() => setFinalOutcome('Failed')}
-                        variant={finalOutcome === 'Failed' ? 'destructive' : 'outline'}
-                        className="flex-1"
-                      >
-                        <ThumbsDown className="mr-2 h-4 w-4" />
-                        不合格
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                </div>
+              )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {isPersonnelOfficeView && (
+                <div className="space-y-4 pt-6 border-t">
+                  <h3 className="text-lg font-semibold">最終的な合否</h3>
+                  <div className="flex gap-4">
+                    <Button 
+                      onClick={() => setFinalOutcome('Passed')}
+                      variant={finalOutcome === 'Passed' ? 'default' : 'outline'}
+                      className={cn("flex-1", finalOutcome === 'Passed' && "bg-green-600 hover:bg-green-700")}
+                    >
+                      <ThumbsUp className="mr-2 h-4 w-4" />
+                      合格
+                    </Button>
+                    <Button 
+                      onClick={() => setFinalOutcome('Failed')}
+                      variant={finalOutcome === 'Failed' ? 'destructive' : 'outline'}
+                      className="flex-1"
+                    >
+                      <ThumbsDown className="mr-2 h-4 w-4" />
+                      不合格
+                    </Button>
+                  </div>
+                </div>
+              )}
+          </CardContent>
+          <CardFooter className="flex flex-col items-stretch gap-4 pt-6 border-t">
+            <fieldset disabled={isActionDisabled} className="disabled:opacity-70 w-full">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="w-full space-y-2">
                     <Label htmlFor="overall-feedback">
                       {isPersonnelOfficeView ? "人事室からの特記事項 (最終承認)" : "特記事項"}
@@ -540,7 +537,6 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
                     />
                   </div>
                 </div>
-              </div>
               <div className="flex justify-end w-full mt-4">
                 <Button onClick={handleSubmitReview} disabled={isSubmitting || isActionDisabled} size="lg">
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check />}
@@ -878,5 +874,3 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     </Card>
   );
 }
-
-    
