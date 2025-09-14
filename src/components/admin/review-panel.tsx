@@ -111,8 +111,8 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       }
       
       if (isLessonReview) {
-        // 動画レビューの場合、「授業審査待ち」と「人事確認中」のステータスで操作を許可
-        return !['授業審査待ち', '人事確認中'].includes(submission.status);
+        // 動画レビューの場合、「Submitted（本部採点中）」「授業審査待ち」「人事確認中」で操作を許可
+        return !['Submitted', '授業審査待ち', '人事確認中'].includes(submission.status);
       }
       
       // 筆記試験の場合、「Submitted」ステータスで操作を許可
