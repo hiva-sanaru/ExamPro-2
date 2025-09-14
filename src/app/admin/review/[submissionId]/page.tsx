@@ -119,7 +119,7 @@ export default function AdminReviewPage() {
         notFound();
     }
     
-    const isLessonReview = !!submission.lessonReviewUrl;
+    const isLessonReview = exam?.type === 'WrittenAndInterview';
 
     const hasAccess = currentUser.role === 'system_administrator' || 
                       (currentUser.role === 'hq_administrator' && currentUser.headquarters === submission.examineeHeadquarters);
@@ -142,9 +142,9 @@ export default function AdminReviewPage() {
         )
     }
 
-    const pageTitle = isLessonReview ? '授業動画レビュー' : '提出物のレビュー';
+    const pageTitle = isLessonReview ? '筆記＋授業審査レビュー' : '提出物のレビュー';
     const pageDescription = isLessonReview 
-      ? '提出された授業動画のURLを確認し、評価を承認してください。' 
+      ? `"${exam?.title}" の筆記試験と授業審査を評価します。`
       : `試験の採点: "${exam?.title}"`;
 
     return (
