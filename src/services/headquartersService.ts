@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, writeBatch, deleteDoc, setDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, deleteDoc, setDoc, query, orderBy, updateDoc } from 'firebase/firestore';
 import type { Headquarters } from '@/lib/types';
 
 const headquartersCollection = collection(db, 'headquarters');
@@ -24,6 +24,11 @@ export async function addHeadquartersBatch(newHqs: Omit<Headquarters, 'id'>[]): 
         batch.set(docRef, { name: hq.name, code: hq.code });
     });
     await batch.commit();
+}
+
+export async function updateHeadquarters(code: string, hq: Partial<Omit<Headquarters, 'code'>>): Promise<void> {
+    const docRef = doc(headquartersCollection, code);
+    await updateDoc(docRef, hq);
 }
 
 export async function deleteHeadquarters(code: string): Promise<void> {

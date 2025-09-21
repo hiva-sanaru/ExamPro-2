@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, Trash2, Loader2, Building, PlusCircle } from 'lucide-react';
+import { Upload, Trash2, Loader2, Building, PlusCircle, Edit } from 'lucide-react';
 import Papa from 'papaparse';
-import { getHeadquarters, addHeadquarters, deleteHeadquarters } from '@/services/headquartersService';
+import { getHeadquarters, addHeadquarters, deleteHeadquarters, updateHeadquarters } from '@/services/headquartersService';
 import type { Headquarters as HeadquartersType } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { AddHeadquartersForm } from '@/components/admin/add-headquarters-form';
@@ -25,6 +25,7 @@ export default function HeadquartersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isAddHqOpen, setAddHqOpen] = useState(false);
+  const [editingHq, setEditingHq] = useState<Headquarters | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchHeadquarters = useCallback(async () => {
@@ -126,6 +127,12 @@ export default function HeadquartersPage() {
   const handleHeadquartersAdded = (newHq: Headquarters) => {
     setHeadquarters(prev => [...prev, newHq].sort((a, b) => a.code.localeCompare(b.code)));
   };
+  
+  const handleHeadquartersUpdated = (updatedHq: Headquarters) => {
+    setHeadquarters(prev => prev.map(hq => hq.code === updatedHq.code ? updatedHq : hq));
+    setEditingHq(null);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -214,10 +221,35 @@ export default function HeadquartersPage() {
                                 <TableCell className="font-medium">{hq.code}</TableCell>
                                 <TableCell>{hq.name}</TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveHeadquarters(hq.code)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                        <span className="sr-only">削除</span>
-                                    </Button>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Dialog open={editingHq?.code === hq.code} onOpenChange={(isOpen) => !isOpen && setEditingHq(null)}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline" size="icon" onClick={() => setEditingHq(hq)}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>本部を編集</DialogTitle>
+                                                    <DialogDescription>
+                                                        「{editingHq?.name}」の情報を更新します。
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                {editingHq && (
+                                                    <AddHeadquartersForm
+                                                        isEditing={true}
+                                                        headquarters={editingHq}
+                                                        onFinished={handleHeadquartersUpdated}
+                                                        onClose={() => setEditingHq(null)}
+                                                    />
+                                                )}
+                                            </DialogContent>
+                                        </Dialog>
+                                        <Button variant="ghost" size="icon" onClick={() => handleRemoveHeadquarters(hq.code)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                            <span className="sr-only">削除</span>
+                                        </Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))

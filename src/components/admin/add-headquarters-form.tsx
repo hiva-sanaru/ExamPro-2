@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import type { Headquarters } from "@/lib/types";
-import { addHeadquarters } from "@/services/headquartersService";
+import { addHeadquarters, updateHeadquarters } from "@/services/headquartersService";
 
 const headquartersSchema = z.object({
   code: z.string().min(1, { message: "本部コードは必須です。" }),
@@ -21,35 +21,44 @@ const headquartersSchema = z.object({
 type HeadquartersFormValues = z.infer<typeof headquartersSchema>;
 
 interface AddHeadquartersFormProps {
+    isEditing?: boolean;
+    headquarters?: Headquarters;
     onFinished: (hq: Headquarters) => void;
     onClose?: () => void;
 }
 
-export function AddHeadquartersForm({ onFinished, onClose }: AddHeadquartersFormProps) {
+export function AddHeadquartersForm({ isEditing = false, headquarters, onFinished, onClose }: AddHeadquartersFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<HeadquartersFormValues>({
     resolver: zodResolver(headquartersSchema),
     defaultValues: {
-      code: "",
-      name: "",
+      code: headquarters?.code || "",
+      name: headquarters?.name || "",
     },
   });
 
   const onSubmit = async (data: HeadquartersFormValues) => {
     setIsLoading(true);
     try {
-        await addHeadquarters(data);
-        toast({
-            title: "本部が正常に追加されました！",
-            description: `コード: ${data.code}, 名前: ${data.name}`,
-        });
+        if (isEditing) {
+            await updateHeadquarters(data.code, { name: data.name });
+            toast({
+                title: "本部が正常に更新されました！"
+            });
+        } else {
+            await addHeadquarters(data);
+            toast({
+                title: "本部が正常に追加されました！",
+                description: `コード: ${data.code}, 名前: ${data.name}`,
+            });
+        }
         onFinished(data);
         onClose?.();
     } catch(error) {
         toast({
-            title: "作成中にエラーが発生しました",
+            title: isEditing ? "更新中にエラーが発生しました" : "作成中にエラーが発生しました",
             description: (error as Error).message,
             variant: "destructive"
         })
@@ -68,7 +77,7 @@ export function AddHeadquartersForm({ onFinished, onClose }: AddHeadquartersForm
             <FormItem>
               <FormLabel>本部コード</FormLabel>
               <FormControl>
-                <Input placeholder="例: hamamatsu" {...field} />
+                <Input placeholder="例: hamamatsu" {...field} disabled={isEditing} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -93,7 +102,7 @@ export function AddHeadquartersForm({ onFinished, onClose }: AddHeadquartersForm
             </Button>
             <Button type="submit" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isLoading ? "作成中..." : "本部を作成"}
+                {isLoading ? (isEditing ? "更新中..." : "作成中...") : (isEditing ? "変更を保存" : "本部を作成")}
             </Button>
         </div>
       </form>
