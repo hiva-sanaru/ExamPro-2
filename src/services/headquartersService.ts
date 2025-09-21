@@ -1,14 +1,21 @@
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, deleteDoc, setDoc, query, orderBy } from 'firebase/firestore';
 import type { Headquarters } from '@/lib/types';
 
 const headquartersCollection = collection(db, 'headquarters');
 
 export async function getHeadquarters(): Promise<Headquarters[]> {
-    const snapshot = await getDocs(headquartersCollection);
+    const q = query(headquartersCollection, orderBy("code"));
+    const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ ...doc.data(), code: doc.id } as Headquarters));
 }
+
+export async function addHeadquarters(hq: Omit<Headquarters, 'id'>): Promise<void> {
+    const docRef = doc(headquartersCollection, hq.code);
+    await setDoc(docRef, { name: hq.name, code: hq.code });
+}
+
 
 export async function addHeadquartersBatch(newHqs: Omit<Headquarters, 'id'>[]): Promise<void> {
     const batch = writeBatch(db);

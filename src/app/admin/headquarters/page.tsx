@@ -7,10 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, Trash2, Loader2, Building } from 'lucide-react';
+import { Upload, Trash2, Loader2, Building, PlusCircle } from 'lucide-react';
 import Papa from 'papaparse';
-import { getHeadquarters, addHeadquartersBatch, deleteHeadquarters } from '@/services/headquartersService';
+import { getHeadquarters, addHeadquarters, deleteHeadquarters } from '@/services/headquartersService';
 import type { Headquarters as HeadquartersType } from '@/lib/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { AddHeadquartersForm } from '@/components/admin/add-headquarters-form';
 
 
 interface Headquarters extends HeadquartersType {
@@ -22,6 +24,7 @@ export default function HeadquartersPage() {
   const [headquarters, setHeadquarters] = useState<Headquarters[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAddHqOpen, setAddHqOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchHeadquarters = useCallback(async () => {
@@ -56,35 +59,34 @@ export default function HeadquartersPage() {
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
-        try {
-          const parsedData = results.data.filter(item => item.code && item.name);
-          
-          const newHqs = parsedData.filter(newItem => 
-              !headquarters.some(hq => hq.code === newItem.code)
-          );
+        const parsedData = results.data.filter(item => item.code && item.name);
+        
+        const newHqs = parsedData.filter(newItem => 
+            !headquarters.some(hq => hq.code === newItem.code)
+        );
 
-          if (newHqs.length > 0) {
-              await addHeadquartersBatch(newHqs);
-              toast({
-                title: 'CSVが正常にインポートされました',
-                description: `${newHqs.length}件の本部が新しく追加されました。`,
-              });
-              fetchHeadquarters(); // Refresh list from firestore
-          } else {
-               toast({
-                  title: 'インポートする新しいデータがありません',
-                  description: 'CSV内のすべての本部は既に存在します。',
-              });
-          }
-        } catch (error) {
-           toast({
+        if (newHqs.length > 0) {
+          try {
+            await Promise.all(newHqs.map(hq => addHeadquarters(hq)));
+            toast({
+              title: 'CSVが正常にインポートされました',
+              description: `${newHqs.length}件の本部が新しく追加されました。`,
+            });
+            fetchHeadquarters(); // Refresh list from firestore
+          } catch(error) {
+            toast({
               title: 'データベースへの保存中にエラーが発生しました',
               description: (error as Error).message,
               variant: 'destructive',
-          });
-        } finally {
-          setIsUploading(false);
+            });
+          }
+        } else {
+             toast({
+                title: 'インポートする新しいデータがありません',
+                description: 'CSV内のすべての本部は既に存在します。',
+            });
         }
+        setIsUploading(false);
       },
       error: (error) => {
         toast({
@@ -121,11 +123,15 @@ export default function HeadquartersPage() {
     }
   }
 
+  const handleHeadquartersAdded = (newHq: Headquarters) => {
+    setHeadquarters(prev => [...prev, newHq].sort((a, b) => a.code.localeCompare(b.code)));
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold font-headline">本部管理</h1>
-        <p className="text-muted-foreground">CSVファイルをインポートして、本部情報を一括で登録・管理します。</p>
+        <p className="text-muted-foreground">CSVファイルをインポートするか、新規追加ボタンから本部情報を登録・管理します。</p>
       </div>
 
        <Card>
@@ -151,7 +157,7 @@ export default function HeadquartersPage() {
                     CSVファイルには 'code' と 'name' のヘッダーを含めてください。
                 </CardDescription>
             </div>
-            <div>
+            <div className="flex items-center gap-2">
                 <Input
                     type="file"
                     ref={fileInputRef}
@@ -159,10 +165,30 @@ export default function HeadquartersPage() {
                     className="hidden"
                     accept=".csv"
                 />
-                <Button onClick={handleImportClick} disabled={isUploading}>
+                <Button onClick={handleImportClick} disabled={isUploading} variant="outline">
                     {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                     {isUploading ? 'インポート中...' : 'CSVをインポート'}
                 </Button>
+                 <Dialog open={isAddHqOpen} onOpenChange={setAddHqOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            新規追加
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>新しい本部を追加</DialogTitle>
+                            <DialogDescription>
+                                新しい本部のコードと名前を入力してください。
+                            </DialogDescription>
+                        </DialogHeader>
+                        <AddHeadquartersForm
+                            onFinished={handleHeadquartersAdded}
+                            onClose={() => setAddHqOpen(false)}
+                        />
+                    </DialogContent>
+                </Dialog>
             </div>
         </CardHeader>
         <CardContent>
@@ -198,7 +224,7 @@ export default function HeadquartersPage() {
                     ) : (
                         <TableRow>
                             <TableCell colSpan={3} className="h-24 text-center">
-                                データがありません。CSVをインポートしてください。
+                                データがありません。CSVをインポートするか、新規追加してください。
                             </TableCell>
                         </TableRow>
                     )}
