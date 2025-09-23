@@ -23,6 +23,9 @@ import { useRouter } from "next/navigation";
 
 // Remove any undefined fields deeply to satisfy Firestore update constraints
 function removeUndefinedDeep<T>(value: T): T {
+  if (value === undefined) {
+    return value;
+  }
   // Preserve Date objects
   if (value instanceof Date) return value;
   if (Array.isArray(value)) {
@@ -31,8 +34,9 @@ function removeUndefinedDeep<T>(value: T): T {
   if (value && typeof value === 'object') {
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (v !== undefined) {
-        result[k] = removeUndefinedDeep(v as unknown as T);
+      const cleanedValue = removeUndefinedDeep(v as unknown as T);
+      if (cleanedValue !== undefined) {
+        result[k] = cleanedValue;
       }
     }
     return result as unknown as T;
@@ -65,8 +69,8 @@ interface AiJustifications {
 }
 
 const LESSON_REVIEW_ITEMS: Record<string, string[]> = {
-  'チューター初級': ['声・表情', 'けじめ', '丁寧', 'やる気アドバイス'],
-  'チューター中級': ['スピーチ', '問題対処', 'リーダー性'],
+  'チューター昇給試験 初級': ['声・表情', 'けじめ', '丁寧', 'やる気アドバイス'],
+  'チューター昇給試験 中級': ['スピーチ', '問題対処', 'リーダー性'],
 };
 
 export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSubmissionUpdate, isLessonReview }: ReviewPanelProps) {
@@ -112,6 +116,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     return [];
   }, [exam?.title, exam?.type, isLessonReview]);
 
+  const normalizeHq = (s?: string) => (s || '').replace('採点', '').trim();
 
   const isActionDisabled = useMemo(() => {
     if (currentUser.role === 'system_administrator') {
@@ -123,15 +128,13 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     }
 
     if (currentUser.role === 'hq_administrator') {
-      const userHq = currentUser.headquarters?.replace('採点', '') || '';
-      const submissionHq = submission.examineeHeadquarters || '';
-      if (userHq !== submissionHq) {
+      if (normalizeHq(currentUser.headquarters) !== normalizeHq(submission.examineeHeadquarters)) {
           return true;
       }
       
       if (isLessonReview) {
-        // 動画レビューの場合、「Submitted（本部採点中）」「授業審査待ち」「人事確認中」で操作を許可
-        return !['Submitted', '授業審査待ち', '人事確認中'].includes(submission.status);
+        // 動画レビューの場合、「授業審査待ち」「人事確認中」で操作を許可
+        return !['授業審査待ち', '人事確認中'].includes(submission.status);
       }
       
       // 筆記試験の場合、「Submitted」ステータスで操作を許可
@@ -139,7 +142,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
     }
 
     return true;
-  }, [currentUser, isPersonnelOfficeView, submission, isLessonReview]);
+  }, [currentUser, isPersonnelOfficeView, submission, isLessonReview, normalizeHq]);
 
 
   const totalScore = useMemo(() => {
@@ -463,7 +466,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
         router.push('/admin/review');
     } catch(error) {
         console.error("Failed to submit review:", error);
-        toast({ title: "送信エラー", description: "レビューの送信中にエラーが発生しました。", variant: "destructive" });
+        toast({ title: "送信エラー", description: (error as Error).message, variant: "destructive" });
     } finally {
         setIsSubmitting(false);
     }
@@ -494,7 +497,7 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
       <Card>
           <CardHeader>
               <CardTitle className="font-headline">{reviewerRole}レビュー</CardTitle>
-              <CardDescription>提出された動画を確認し、各項目を評価してください。</CardDescription>
+               <CardDescription>提出された動画を確認し、各項目を評価してください。</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
               <fieldset disabled={isActionDisabled} className="disabled:opacity-70 space-y-6">
@@ -921,5 +924,6 @@ export function ReviewPanel({ exam, submission, reviewerRole, currentUser, onSub
   );
 }
 
+    
     
     
