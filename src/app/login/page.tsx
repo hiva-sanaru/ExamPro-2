@@ -11,8 +11,9 @@ export default function LoginPage() {
         </div>
         <LoginForm />
       </div>
-       <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} SANARUスタッフ昇給試験サイト. 無断複写・転載を禁じます。
+      <footer className="absolute bottom-4 text-center text-sm text-muted-foreground">
+        <p>© {new Date().getFullYear()} SANARUスタッフ昇給試験サイト. 無断複写・転載を禁じます。</p>
+        <p className="mt-1">© 2026 sanaru | Developed by m.hibayashi</p>
       </footer>
     </main>
   );
