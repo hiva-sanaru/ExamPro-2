@@ -13,7 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, Eye, Loader2 } from "lucide-react";
+import { Edit, Trash2, Eye, Loader2, Printer } from "lucide-react";
 import { cva } from "class-variance-authority";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -34,12 +34,12 @@ export function ExamList({ isAdmin }: ExamListProps) {
     try {
       const fetchedExams = await getExams();
       // Map legacy types for backward compatibility
-      const mappedExams = fetchedExams.map(exam => {
+      const mappedExams: Exam[] = fetchedExams.map(exam => {
         if ((exam.type as any) === 'Standard') {
-          return { ...exam, type: 'WrittenOnly' };
+          return { ...exam, type: 'WrittenOnly' as const };
         }
         if ((exam.type as any) === 'Promotion') {
-          return { ...exam, type: 'WrittenAndInterview' };
+          return { ...exam, type: 'WrittenAndInterview' as const };
         }
         return exam;
       });
@@ -136,6 +136,16 @@ export function ExamList({ isAdmin }: ExamListProps) {
                     </Button>
                     {isAdmin && (
                         <>
+                            <Button variant="outline" size="icon" asChild>
+                                <Link
+                                    href={`/admin/exams/${exam.id}/print`}
+                                    aria-label={`「${exam.title}」の問題を出力`}
+                                    title="問題を出力"
+                                >
+                                    <Printer className="h-4 w-4" />
+                                    <span className="sr-only">問題を出力</span>
+                                </Link>
+                            </Button>
                             <Button variant="outline" size="icon" asChild>
                                 <Link href={`/admin/create-exam?examId=${exam.id}`}>
                                     <Edit className="h-4 w-4" />

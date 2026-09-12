@@ -57,7 +57,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <SidebarProvider>
-            <Sidebar variant="sidebar" collapsible="icon">
+            <Sidebar variant="sidebar" collapsible="icon" className="print:hidden">
                 <SidebarHeader>
                     <div className="flex items-center justify-center p-2 group-data-[collapsible=icon]:p-0.5">
                        <Image src="/sanaru-ascend-logo.png" alt="SANARU ASCEND Logo" width={150} height={50} className="group-data-[collapsible=icon]:hidden" data-ai-hint="logo" />
@@ -107,9 +107,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 </SidebarFooter>
             </Sidebar>
 
-            <SidebarInset>
-                <main className="flex-1 overflow-y-auto p-4 md:p-6">
-                    <SidebarTrigger className="md:hidden absolute top-4 right-4" />
+            <SidebarInset className="print:min-h-0 print:bg-white">
+                <main className="flex-1 overflow-y-auto p-4 print:overflow-visible print:p-0 md:p-6">
+                    <SidebarTrigger className="absolute right-4 top-4 print:hidden md:hidden" />
                     {children}
                 </main>
             </SidebarInset>

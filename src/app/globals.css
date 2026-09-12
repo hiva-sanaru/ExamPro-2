@@ -78,6 +78,58 @@ body {
   }
 }
 
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 15mm 16mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  body {
+    color: #0f172a !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .exam-print-shell {
+    margin: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .exam-print-actions {
+    display: none !important;
+  }
+
+  .exam-print-document {
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .exam-print-header,
+  .exam-print-question-heading,
+  .exam-print-field-title {
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  .exam-print-question,
+  .exam-print-field,
+  .exam-print-subquestion {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .exam-print-field-content {
+    orphans: 3;
+    widows: 3;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
