@@ -128,7 +128,9 @@ export default function AdminReviewPage() {
     // 本部名の表記ゆれ対応（例: 「浜松本部」「浜松」「浜松採点」など）
     const normalizeHq = (s?: string) => (s || '').replace('採点', '').trim();
     const hasAccess = currentUser.role === 'system_administrator' || 
-                      (currentUser.role === 'hq_administrator' && normalizeHq(currentUser.headquarters) === normalizeHq(submission.examineeHeadquarters));
+                      (currentUser.role === 'hq_administrator' &&
+                        submission.hiddenFromHeadquarters !== true &&
+                        normalizeHq(currentUser.headquarters) === normalizeHq(submission.examineeHeadquarters));
 
     if (!hasAccess) {
         return (

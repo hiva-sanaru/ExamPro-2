@@ -1,40 +1,78 @@
-
 'use client';
-import { useState, useEffect } from 'react';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SubmissionList } from "@/components/admin/submission-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getExams } from '@/services/examService';
 import { getSubmissions } from '@/services/submissionService';
 import type { Submission, Exam, User } from '@/lib/types';
-import { FileText } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';
 import { ja } from 'date-fns/locale';
 import { findUserByEmployeeId } from '@/services/userService';
+
+const normalizeHeadquarters = (headquarters?: string) =>
+  (headquarters || '').replace('採点', '').trim();
 
 export default function ReviewListPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const refreshSubmissions = useCallback(async () => {
+    const fetchedSubmissions = await getSubmissions();
+    setSubmissions(fetchedSubmissions);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
-        try {
-            const [fetchedExams, fetchedSubmissions, user] = await Promise.all([
-                getExams(),
-                getSubmissions(),
-                findUserByEmployeeId(localStorage.getItem('loggedInUserEmployeeId') || '')
-            ]);
-            setExams(fetchedExams);
-            setSubmissions(fetchedSubmissions);
-            setCurrentUser(user);
-        } catch (error) {
-            console.error("Failed to fetch data for export", error);
+      try {
+        const employeeId = localStorage.getItem('loggedInUserEmployeeId');
+        if (!employeeId) {
+          throw new Error('ログイン情報が見つかりません。');
         }
+
+        const [fetchedExams, fetchedSubmissions, user] = await Promise.all([
+          getExams(),
+          getSubmissions(),
+          findUserByEmployeeId(employeeId),
+        ]);
+
+        if (!user) {
+          throw new Error('ログインユーザーを確認できません。');
+        }
+
+        setExams(fetchedExams);
+        setSubmissions(fetchedSubmissions);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Failed to fetch review data', error);
+        setLoadError('提出物を読み込めませんでした。ログイン状態を確認して、もう一度お試しください。');
+      } finally {
+        setIsLoading(false);
+      }
     }
+
     fetchData();
   }, []);
-  
+
+  const visibleSubmissions = useMemo(() => {
+    if (!currentUser) return [];
+
+    if (currentUser.role === 'hq_administrator') {
+      const currentHeadquarters = normalizeHeadquarters(currentUser.headquarters);
+      return submissions.filter((submission) =>
+        normalizeHeadquarters(submission.examineeHeadquarters) === currentHeadquarters &&
+        submission.hiddenFromHeadquarters !== true,
+      );
+    }
+
+    return submissions;
+  }, [currentUser, submissions]);
+
   const getStatusInJapanese = (status: Submission['status']): string => {
     switch (status) {
       case 'Submitted':
@@ -48,82 +86,98 @@ export default function ReviewListPage() {
       case '不合格':
         return '不合格';
       case 'Completed':
-         return '完了';
+        return '完了';
       default:
         return status;
     }
   };
 
-
   const handleExportSubmissions = () => {
-        const headers = [
-            "試験名",
-            "受験者名",
-            "社員番号",
-            "受験者本部",
-            "提出日時",
-            "ステータス",
-            "本部スコア",
-            "人事室スコア",
-            "最終スコア",
-            "授業審査URL",
-            "授業審査希望日時1",
-            "授業審査希望日時2",
-            "授業審査校舎名",
-            "授業審査教室名",
-        ];
-        
-        const rows = submissions.map(submission => {
-            const exam = exams.find(e => e.id === submission.examId);
-            const formatDate = (date: any) => {
-                if (!date) return "－";
-                const dateObj = date.toDate ? date.toDate() : new Date(date);
-                return formatInTimeZone(dateObj, 'Asia/Tokyo', "yyyy-MM-dd HH:mm", { locale: ja });
-            }
+    if (!currentUser) return;
 
-            return [
-                exam?.title || "－",
-                submission.examineeName || "－",
-                `="${submission.examineeId || "－"}"`,
-                submission.examineeHeadquarters || "－",
-                formatDate(submission.submittedAt),
-                getStatusInJapanese(submission.status),
-                submission.hqGrade?.score ?? "－",
-                submission.poGrade?.score ?? "－",
-                submission.finalScore ?? "－",
-                submission.lessonReviewUrl ?? "－",
-                submission.lessonReviewDate1 ? formatDate(submission.lessonReviewDate1) : "－",
-                submission.lessonReviewDate2 ? formatDate(submission.lessonReviewDate2) : "－",
-                submission.lessonReviewSchoolName ?? "－",
-                submission.lessonReviewClassroomName ?? "－",
-            ].map(value => {
-                const str = String(value).replace(/"/g, '""'); // Escape double quotes
-                if (String(value).includes(',')) {
-                    return `"${str}"`;
-                }
-                return value; // Return value directly for non-comma values
-            }).join(',');
-        });
+    const headers = [
+      '試験名',
+      '受験者名',
+      '社員番号',
+      '受験者本部',
+      '提出日時',
+      'ステータス',
+      '本部スコア',
+      '人事室スコア',
+      '最終スコア',
+      '授業審査URL',
+      '授業審査希望日時1',
+      '授業審査希望日時2',
+      '授業審査校舎名',
+      '授業審査教室名',
+    ];
 
-        const csvString = [headers.join(','), ...rows].join('\n');
-        const blob = new Blob([`\uFEFF${csvString}`], { type: "text/csv;charset=utf-8;" }); // BOM for Excel compatibility
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `sanaru_submissions_export_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+    if (currentUser.role === 'system_administrator') {
+      headers.push('本部表示');
     }
 
-    const handleSubmissionDeleted = (submissionId: string) => {
-        setSubmissions(prev => prev.filter(s => s.id !== submissionId));
-    };
+    const rows = visibleSubmissions.map((submission) => {
+      const exam = exams.find((item) => item.id === submission.examId);
+      const formatDate = (date: unknown) => {
+        if (!date) return '－';
+        const dateValue = date as { toDate?: () => Date };
+        const dateObj = dateValue.toDate ? dateValue.toDate() : new Date(date as string | number | Date);
+        return formatInTimeZone(dateObj, 'Asia/Tokyo', 'yyyy-MM-dd HH:mm', { locale: ja });
+      };
 
-    const filteredSubmissions = currentUser?.role === 'hq_administrator'
-        ? submissions.filter(s => s.examineeHeadquarters === currentUser.headquarters)
-        : submissions;
+      const values = [
+        exam?.title || '－',
+        submission.examineeName || '－',
+        `="${submission.examineeId || '－'}"`,
+        submission.examineeHeadquarters || '－',
+        formatDate(submission.submittedAt),
+        getStatusInJapanese(submission.status),
+        submission.hqGrade?.score ?? '－',
+        submission.poGrade?.score ?? '－',
+        submission.finalScore ?? '－',
+        submission.lessonReviewUrl ?? '－',
+        submission.lessonReviewDate1 ? formatDate(submission.lessonReviewDate1) : '－',
+        submission.lessonReviewDate2 ? formatDate(submission.lessonReviewDate2) : '－',
+        submission.lessonReviewSchoolName ?? '－',
+        submission.lessonReviewClassroomName ?? '－',
+      ];
+
+      if (currentUser.role === 'system_administrator') {
+        values.push(submission.hiddenFromHeadquarters ? '非表示' : '表示中');
+      }
+
+      return values.map((value) => {
+        const stringValue = String(value).replace(/"/g, '""');
+        return /[,"]/.test(stringValue) ? `"${stringValue}"` : stringValue;
+      }).join(',');
+    });
+
+    const csvString = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `sanaru_submissions_export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSubmissionDeleted = (submissionId: string) => {
+    setSubmissions((previous) => previous.filter((submission) => submission.id !== submissionId));
+  };
+
+  const handleSubmissionsVisibilityChanged = (submissionIds: string[], hiddenFromHeadquarters: boolean) => {
+    const updatedIds = new Set(submissionIds);
+    setSubmissions((previous) => previous.map((submission) =>
+      updatedIds.has(submission.id)
+        ? { ...submission, hiddenFromHeadquarters }
+        : submission,
+    ));
+  };
+
+  const isSystemAdministrator = currentUser?.role === 'system_administrator';
 
   return (
     <div className="space-y-6">
@@ -138,17 +192,32 @@ export default function ReviewListPage() {
             <CardTitle>提出物リスト</CardTitle>
             <CardDescription>提出物を選択してレビューを開始してください。</CardDescription>
           </div>
-          <Button onClick={handleExportSubmissions} className="bg-chart-1 hover:bg-chart-1/90">
-              <FileText className="mr-2 h-4 w-4" />
-              提出物をエクスポート
+          <Button
+            onClick={handleExportSubmissions}
+            className="bg-chart-1 hover:bg-chart-1/90"
+            disabled={isLoading || !!loadError || !currentUser}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            提出物をエクスポート
           </Button>
         </CardHeader>
         <CardContent>
-          <SubmissionList 
-            submissions={filteredSubmissions} 
-            exams={exams} 
-            onSubmissionDeleted={handleSubmissionDeleted}
-          />
+          {isLoading ? (
+            <div className="flex h-24 items-center justify-center" role="status">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : loadError ? (
+            <p className="py-8 text-center text-destructive">{loadError}</p>
+          ) : currentUser ? (
+            <SubmissionList
+              submissions={visibleSubmissions}
+              exams={exams}
+              isSystemAdministrator={isSystemAdministrator}
+              onSubmissionDeleted={handleSubmissionDeleted}
+              onSubmissionsVisibilityChanged={handleSubmissionsVisibilityChanged}
+              onSubmissionsRefresh={refreshSubmissions}
+            />
+          ) : null}
         </CardContent>
       </Card>
     </div>

@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc, Timestamp, serverTimestamp, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, Timestamp, serverTimestamp, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import type { Submission } from '@/lib/types';
 
 const submissionsCollection = collection(db, 'submissions');
@@ -59,6 +59,29 @@ export async function updateSubmission(submissionId: string, submissionData: Par
     }
     
     await updateDoc(docRef, dataToUpdate);
+}
+
+/**
+ * Keeps results while controlling whether headquarters administrators can see them.
+ * Firestore batches are limited to 500 writes, so larger selections are committed
+ * in independent batches.
+ */
+export async function updateSubmissionsHeadquartersVisibility(
+    submissionIds: string[],
+    hiddenFromHeadquarters: boolean,
+): Promise<void> {
+    const uniqueSubmissionIds = [...new Set(submissionIds)];
+
+    for (let start = 0; start < uniqueSubmissionIds.length; start += 500) {
+        const batch = writeBatch(db);
+        const batchIds = uniqueSubmissionIds.slice(start, start + 500);
+
+        batchIds.forEach((submissionId) => {
+            batch.update(doc(db, 'submissions', submissionId), { hiddenFromHeadquarters });
+        });
+
+        await batch.commit();
+    }
 }
 
 export async function deleteSubmission(submissionId: string): Promise<void> {

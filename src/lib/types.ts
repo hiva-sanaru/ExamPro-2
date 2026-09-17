@@ -70,6 +70,8 @@ export interface Submission {
   lessonReviewSchoolName?: string;
   lessonReviewClassroomName?: string;
   resultCommunicated?: boolean;
+  /** 本部管理者の一覧・CSV・詳細画面から非表示にする場合は true。未設定は表示扱い。 */
+  hiddenFromHeadquarters?: boolean;
   lessonReviewGrades?: LessonReviewGrades;
 }
 
