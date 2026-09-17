@@ -131,7 +131,6 @@ function ExamineePortal() {
 
                 <footer className="text-center text-sm text-muted-foreground pt-8">
                     <p>© {new Date().getFullYear()} SANARUスタッフ昇給試験サイト. 無断複写・転載を禁じます。</p>
-                    <p className="mt-1">© 2026 sanaru | Developed by m.hibayashi</p>
                     <div className="mt-2">
                         <Link href="/login" className="hover:underline">
                             管理者用ページ
