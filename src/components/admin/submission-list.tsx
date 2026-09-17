@@ -44,6 +44,7 @@ interface SubmissionListProps {
   submissions: Submission[];
   exams: Exam[];
   isSystemAdministrator: boolean;
+  hasActiveFilters: boolean;
   onSubmissionDeleted: (submissionId: string) => void;
   onSubmissionsVisibilityChanged: (submissionIds: string[], hiddenFromHeadquarters: boolean) => void;
   onSubmissionsRefresh: () => Promise<void>;
@@ -53,6 +54,7 @@ export function SubmissionList({
   submissions,
   exams,
   isSystemAdministrator,
+  hasActiveFilters,
   onSubmissionDeleted,
   onSubmissionsVisibilityChanged,
   onSubmissionsRefresh,
@@ -312,7 +314,7 @@ export function SubmissionList({
         </div>
       )}
 
-      <div className="rounded-lg border">
+      <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow className="bg-primary hover:bg-primary/90">
@@ -381,7 +383,9 @@ export function SubmissionList({
               </TableRow>
             ) : sortedSubmissions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columnCount} className="h-24 text-center">提出物はまだありません。</TableCell>
+                <TableCell colSpan={columnCount} className="h-24 text-center">
+                  {hasActiveFilters ? '条件に一致する提出物はありません。' : '提出物はまだありません。'}
+                </TableCell>
               </TableRow>
             ) : sortedSubmissions.map((submission) => {
               const exam = examsMap[submission.examId];

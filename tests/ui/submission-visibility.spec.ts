@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
 async function findEmployeeIdByRole(page: Page, roleLabel: string) {
@@ -25,9 +26,28 @@ test.describe('Headquarters result visibility controls', () => {
     await page.goto('/admin/review');
 
     await expect(page.getByRole('heading', { level: 1, name: '提出物のレビュー' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '提出物をエクスポート' })).toBeEnabled();
     await expect(page.getByText('本部表示', { exact: true })).toBeVisible();
     await expect(page.getByLabel('表示中の提出物をすべて選択')).toBeVisible();
-    await page.getByText('本部表示', { exact: true }).scrollIntoViewIfNeeded();
+    await expect(page.getByLabel('検索')).toBeVisible();
+    await expect(page.locator('#submission-type-filter')).toBeVisible();
+    await expect(page.locator('#submission-headquarters-filter')).toBeVisible();
+    await expect(page.locator('#submission-status-filter')).toBeVisible();
+
+    await page.getByLabel('検索').fill('__no_matching_submission__');
+    await expect(page.getByText('条件に一致する提出物はありません。')).toBeVisible();
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: '提出物をエクスポート' }).click();
+    const download = await downloadPromise;
+    const downloadPath = await download.path();
+    expect(downloadPath).not.toBeNull();
+    const csv = await readFile(downloadPath!, 'utf8');
+    expect(csv.trim().split(/\r?\n/)).toHaveLength(1);
+
+    await page.getByRole('button', { name: '条件をクリア' }).click();
+    await expect(page.getByLabel('検索')).toHaveValue('');
+    await expect(page.getByText('条件に一致する提出物はありません。')).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('system-administrator-review.png'), fullPage: false });
   });
 
@@ -42,6 +62,10 @@ test.describe('Headquarters result visibility controls', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: '提出物のレビュー' })).toBeVisible();
     await expect(page.getByRole('button', { name: '提出物をエクスポート' })).toBeEnabled();
+    await expect(page.getByLabel('検索')).toBeVisible();
+    await expect(page.locator('#submission-type-filter')).toBeVisible();
+    await expect(page.locator('#submission-status-filter')).toBeVisible();
+    await expect(page.locator('#submission-headquarters-filter')).toHaveCount(0);
     await expect(page.getByText('本部表示', { exact: true })).toHaveCount(0);
     await expect(page.getByLabel('表示中の提出物をすべて選択')).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('headquarters-administrator-review.png'), fullPage: false });
